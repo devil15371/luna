@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Luna Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      /* Warm Vintage Retro Bright Palette */
+      --bg-base: #f6efe2;
+      --bg-panel: #ede2cd;
+      --bg-surface: #fffdf9;
+      --bg-surface-hover: #fcf7ee;
+      --bg-card: #fffdf9;
+      --bg-subtle: rgba(100, 75, 50, 0.04);
+      --bg-elevated: #f4ecdc;
+
+      --border-subtle: #e5dac5;
+      --border-default: #d8cbb2;
+      --border-active: #c25e00;
+
+      --accent-primary: #c25e00;
+      --accent-hover: #a85100;
+      --accent-subtle: rgba(194, 94, 0, 0.08);
+      --accent-border: rgba(194, 94, 0, 0.28);
+
+      --emerald: #166534;
+      --emerald-subtle: #f0f7f0;
+      --emerald-border: #bbf0bb;
+
+      --danger: #b91c1c;
+      --danger-subtle: #fef2f2;
+
+      --text-primary: #26211d;
+      --text-secondary: #5e5246;
+      --text-tertiary: #847565;
+      --text-muted: #9e8e7d;
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-full: 9999px;
+
+      --shadow-sm: 0 1px 3px rgba(80, 50, 20, 0.06);
+      --shadow-md: 0 4px 12px rgba(80, 50, 20, 0.08);
+      --shadow-lg: 0 8px 24px rgba(80, 50, 20, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      font-size: 13px;
+    }
+
+    /* Custom Scrollbar - Vintage Style */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(120, 100, 80, 0.2);
+      border-radius: var(--radius-full);
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(120, 100, 80, 0.35);
+    }
+
+    /* Header - Nostalgic Vintage Warmth */
+    header {
+      background: var(--bg-panel);
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      z-index: 10;
+      box-shadow: 0 1px 2px rgba(80, 50, 20, 0.04);
+    }
+
+    .brand-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .brand-icon {
+      width: 26px;
+      height: 26px;
+      background: linear-gradient(135deg, #c25e00 0%, #9a4400 100%);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fffaf2;
+      box-shadow: 0 2px 5px rgba(194, 94, 0, 0.25);
+    }
+
+    .brand-icon svg {
+      width: 15px;
+      height: 15px;
+      fill: currentColor;
+    }
+
+    h1 {
+      font-family: 'Fraunces', serif;
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .brand-tag {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--accent-primary);
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      padding: 1px 6px;
+      border-radius: var(--radius-sm);
+      letter-spacing: 0.5px;
+    }
+
+    .mode-pill {
+      font-size: 0.7rem;
+      padding: 3px 9px;
+      border-radius: var(--radius-full);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      border: 1px solid var(--border-default);
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .active-page-info {
+      font-size: 0.74rem;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 9px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+    }
+
+    .active-badge {
+      width: 7px;
+      height: 7px;
+      background: var(--emerald);
+      border-radius: 50%;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 2px rgba(22, 101, 52, 0.15);
+    }
+
+    .active-page-info span {
+      display: inline-block;
+      max-width: 250px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    /* Segmented Navigation Tabs */
+    .tabs-bar {
+      display: flex;
+      background: var(--bg-panel);
+      padding: 4px 16px 10px;
+      gap: 5px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .tab-btn {
+      flex: 1;
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--text-secondary);
+      padding: 7px 10px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border-radius: var(--radius-sm);
+      text-align: center;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-primary);
+      background: rgba(0, 0, 0, 0.03);
+    }
+
+    .tab-btn.active {
+      color: var(--text-primary);
+      background: var(--bg-surface);
+      border-color: var(--border-subtle);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Main Container Views */
+    main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .view-content {
+      display: none;
+      flex-direction: column;
+      height: 100%;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .view-content.active {
+      display: flex;
+      opacity: 1;
+    }
+
+    /* Primary Action Button */
+    .action-btn-container {
+      margin-bottom: 14px;
+    }
+
+    .primary-btn {
+      background: linear-gradient(180deg, #c25e00 0%, #9e4600 100%);
+      border: 1px solid rgba(0, 0, 0, 0.15);
+      color: #fffdfa;
+      padding: 11px 16px;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      font-size: 0.84rem;
+      cursor: pointer;
+      width: 100%;
+      letter-spacing: -0.01em;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 5px rgba(160, 70, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .primary-btn:hover {
+      background: linear-gradient(180deg, #d36800 0%, #ad4c00 100%);
+      box-shadow: 0 4px 10px rgba(160, 70, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .primary-btn:active {
+      transform: translateY(0);
+      box-shadow: 0 1px 2px rgba(160, 70, 0, 0.2);
+    }
+
+    /* Clean Vintage Cards */
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow-sm);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .card:hover {
+      border-color: var(--border-default);
+    }
+
+    .card-title {
+      font-size: 0.77rem;
+      color: var(--text-secondary);
+      font-weight: 600;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      letter-spacing: -0.01em;
+    }
+
+    .card-title-icon {
+      color: var(--text-tertiary);
+    }
+
+    /* Structured Overview Card */
+    .matrix-item {
+      padding: 10px;
+      background: #fbf8f2;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      margin-bottom: 8px;
+    }
+
+    .matrix-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .matrix-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .matrix-value {
+      font-size: 0.82rem;
+      line-height: 1.5;
+      color: var(--text-primary);
+      white-space: pre-line;
+    }
+
+    /* Interactive Elements (Page Actions List) */
+    .elements-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 220px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .element-pill {
+      background: #fcf9f4;
+      border: 1px solid var(--border-subtle);
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-align: left;
+    }
+
+    .element-pill:hover {
+      background: var(--bg-surface-hover);
+      border-color: var(--accent-border);
+      transform: translateX(2px);
+    }
+
+    .element-pill-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-right: 8px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .element-pill-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      background: #f2e9dc;
+      color: var(--text-secondary);
+      border: 1px solid var(--border-subtle);
+      flex-shrink: 0;
+    }
+
+    /* Chat Styling */
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      flex: 1;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 4px;
+      margin-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .chat-bubble {
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      max-width: 88%;
+      font-size: 0.82rem;
+      line-height: 1.5;
+    }
+
+    .chat-bubble.assistant {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      align-self: flex-start;
+      border-bottom-left-radius: 2px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .chat-bubble.user {
+      background: var(--accent-primary);
+      color: #fffdfa;
+      align-self: flex-end;
+      border-bottom-right-radius: 2px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .chat-link {
+      color: #c25e00;
+      text-decoration: underline;
+      cursor: pointer;
+      font-weight: 600;
+      transition: color 0.15s ease;
+    }
+    
+    .chat-link:hover {
+      color: #9a4400;
+    }
+
+    .chat-input-area {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      padding: 4px 6px 4px 12px;
+      box-shadow: var(--shadow-sm);
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .chat-input-area:focus-within {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 2px rgba(194, 94, 0, 0.15);
+    }
+
+    .chat-textarea {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: var(--text-primary);
+      padding: 6px 0;
+      font-family: inherit;
+      font-size: 0.82rem;
+      resize: none;
+      height: 34px;
+      outline: none;
+      line-height: 1.4;
+    }
+
+    .chat-textarea::placeholder {
+      color: var(--text-muted);
+    }
+
+    .send-btn {
+      background: var(--accent-primary);
+      border: none;
+      color: #fffdfa;
+      width: 30px;
+      height: 30px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .send-btn:hover {
+      background: var(--accent-hover);
+    }
+
+    .send-btn svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    .suggestions-container {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .suggestion-chip {
+      background: #f7efe4;
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      font-size: 0.72rem;
+      padding: 5px 10px;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      font-weight: 500;
+    }
+
+    .suggestion-chip:hover {
+      background: var(--bg-surface);
+      color: var(--text-primary);
+      border-color: var(--border-default);
+    }
+
+    /* Forms and Controls */
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group:last-child {
+      margin-bottom: 0;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 3px;
+    }
+
+    .input-control {
+      width: 100%;
+      background: #fffdf9;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      color: var(--text-primary);
+      font-size: 0.8rem;
+      font-family: inherit;
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .input-control:focus {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 2px rgba(194, 94, 0, 0.15);
+    }
+
+    .toggle-container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 38px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #dfd4c4;
+      transition: .2s ease;
+      border-radius: 20px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: #ffffff;
+      transition: .2s ease;
+      border-radius: 50%;
+      box-shadow: 0 1px 2px rgba(80, 50, 20, 0.2);
+    }
+
+    input:checked + .slider {
+      background-color: var(--accent-primary);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(18px);
+    }
+
+    .settings-save-btn {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-default);
+      color: var(--text-primary);
+      padding: 9px 14px;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      font-size: 0.78rem;
+      cursor: pointer;
+      width: 100%;
+      transition: all 0.15s ease;
+    }
+
+    .settings-save-btn:hover {
+      background: #e4d8c2;
+    }
+
+    /* Status Notifications */
+    .status-toast {
+      position: absolute;
+      bottom: 16px;
+      left: 16px;
+      right: 16px;
+      background: #fffdf9;
+      border: 1px solid var(--border-default);
+      border-radius: var(--radius-md);
+      padding: 9px 12px;
+      font-size: 0.78rem;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      box-shadow: var(--shadow-md);
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      transform: translateY(4px);
+    }
+
+    .status-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Loading Spinner */
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(194, 94, 0, 0.2);
+      border-radius: 50%;
+      border-top-color: var(--accent-primary);
+      animation: spin 0.8s linear infinite;
+    }
+
+    .ai-typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 12px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      align-self: flex-start;
+      margin-bottom: 8px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .typing-dot {
+      width: 5px;
+      height: 5px;
+      background: var(--text-tertiary);
+      border-radius: 50%;
+      opacity: 0.6;
+      animation: typingGlow 1.2s infinite ease-in-out;
+    }
+
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes typingGlow {
+      0%, 100% { transform: translateY(0); opacity: 0.4; }
+      50% { transform: translateY(-3px); opacity: 1; }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <div class="brand-container">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/></svg>
+        </div>
+        <h1>Luna <span class="brand-tag">ASSISTANT</span></h1>
+      </div>
+      <div id="mode-badge" class="mode-pill">
+        Active
+      </div>
+    </div>
+    <div class="active-page-info">
+      <div class="active-badge"></div>
+      <span id="page-url-indicator">Ready to connect...</span>
+    </div>
+  </header>
+
+  <!-- Segmented Navigation Tabs -->
+  <div class="tabs-bar">
+    <button class="tab-btn active" data-view="view-dashboard">Overview</button>
+    <button class="tab-btn" data-view="view-chat">Assistant</button>
+    <button class="tab-btn" data-view="view-settings">Settings</button>
+  </div>
+
+  <!-- Main Views Container -->
+  <main>
+    
+    <!-- VIEW 1: Dashboard -->
+    <div id="view-dashboard" class="view-content active">
+      <div class="action-btn-container">
+        <button id="dissect-btn" class="primary-btn">
+          <svg style="width:15px; height:15px; fill:currentColor" viewBox="0 0 24 24">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/>
+          </svg>
+          Analyze Current Page
+        </button>
+      </div>
+
+      <!-- SafeGuard Shield Status Card -->
+      <div class="card" style="border-left: 3px solid var(--emerald); background: var(--emerald-subtle);">
+        <div class="card-title">
+          <span style="display:flex; align-items:center; gap:6px; color: var(--text-primary);">
+            <svg style="width:14px; height:14px; fill:var(--emerald);" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+            Content Safety Shield
+          </span>
+          <span id="shield-status-badge" style="font-size: 0.65rem; padding: 2px 8px; border-radius: var(--radius-full); background: #dcfce7; border: 1px solid var(--emerald-border); color: var(--emerald); font-weight: 600;">ACTIVE</span>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <div style="font-size: 0.78rem; color: var(--text-secondary);">
+            <b id="shield-count-display" style="font-size: 1rem; color: var(--text-primary); font-weight: 700;">0</b> sensitive items hidden on this page
+          </div>
+          <button id="rescan-shield-btn" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); color: var(--text-primary); font-size: 0.7rem; padding: 4px 9px; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.15s ease;">
+            Re-scan
+          </button>
+        </div>
+      </div>
+
+      <!-- Page Overview Card -->
+      <div class="card">
+        <div class="card-title">
+          <span>Page Overview</span>
+          <svg class="card-title-icon" style="width:14px; height:14px; fill:currentColor" viewBox="0 0 24 24">
+            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+          </svg>
+        </div>
+        <div id="matrix-container">
+          <div class="matrix-item">
+            <div class="matrix-label">
+              <svg style="width:12px; height:12px; fill:var(--accent-primary);" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+              Summary
+            </div>
+            <div id="summary-objective" class="matrix-value">Click "Analyze Current Page" to extract essential information.</div>
+          </div>
+          
+          <div class="matrix-item">
+            <div class="matrix-label">
+              <svg style="width:12px; height:12px; fill:#b45309;" viewBox="0 0 24 24"><path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/></svg>
+              Key Details & Requirements
+            </div>
+            <div id="summary-requirements" class="matrix-value">—</div>
+          </div>
+
+          <div class="matrix-item">
+            <div class="matrix-label">
+              <svg style="width:12px; height:12px; fill:var(--emerald);" viewBox="0 0 24 24"><path d="M12 2L1 21h22L12 2zm0 4l7.53 13H4.47L12 6zm-1 4h2v4h-2v-4zm0 6h2v2h-2v-2z"/></svg>
+              Recommended Next Step
+            </div>
+            <div id="summary-vector" class="matrix-value">—</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Verified Downloads & Documents Card (Appears when genuine files are found) -->
+      <div id="verified-downloads-card" class="card" style="display: none; border-left: 3px solid #c25e00; background: #fffdf9;">
+        <div class="card-title">
+          <span style="display: flex; align-items: center; gap: 6px; color: var(--text-primary);">
+            <svg style="width: 14px; height: 14px; fill: #c25e00;" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+            Verified Direct Downloads
+          </span>
+          <span id="downloads-badge" style="font-size: 0.65rem; padding: 2px 7px; border-radius: var(--radius-full); background: #fef3c7; border: 1px solid #fde68a; color: #b45309; font-weight: 600;">GENUINE FILES</span>
+        </div>
+        <div style="font-size: 0.74rem; color: var(--text-secondary); margin-bottom: 8px;">
+          Luna verified the authentic file and filtered out deceptive ad buttons.
+        </div>
+        <div id="verified-downloads-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+      </div>
+
+      <!-- Essential Purpose Actions Card -->
+      <div class="card" style="flex: 1; display: flex; flex-direction: column;">
+        <div class="card-title">
+          <span>Essential Purpose Actions</span>
+          <span id="elements-count" style="font-size: 0.68rem; color: var(--text-tertiary); font-weight: normal;">0 items</span>
+        </div>
+        <div id="elements-list" class="elements-grid">
+          <div style="color: var(--text-muted); font-size: 0.78rem; text-align: center; padding: 20px 0;">
+            No actions mapped yet. Click analyze to scan primary buttons.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 2: Chat Assistant -->
+    <div id="view-chat" class="view-content">
+      <div class="chat-container">
+        
+        <!-- Conversation Window -->
+        <div id="chat-messages-container" class="chat-messages">
+          <div class="chat-bubble assistant">
+            Hello! I am Luna, your personal web assistant. Ask me anything about this website, forms, deadlines, or where to find specific buttons.
+          </div>
+        </div>
+
+        <!-- Suggestions Chips -->
+        <div class="suggestions-container" id="suggestions-box">
+          <div class="suggestion-chip" data-query="Where do I click to apply / register?">Where is the apply button?</div>
+          <div class="suggestion-chip" data-query="What are the main requirements, documents, or eligibility rules on this page?">What are the requirements?</div>
+          <div class="suggestion-chip" data-query="Are there any deadlines or fees listed here?">Any deadlines or fees?</div>
+        </div>
+
+        <!-- Chat Input Form -->
+        <div class="chat-input-area" style="margin-top: 10px;">
+          <textarea id="chat-input" class="chat-textarea" placeholder="Ask Luna about this page..." rows="1"></textarea>
+          <button id="send-chat-btn" class="send-btn" title="Send message">
+            <svg viewBox="0 0 24 24">
+              <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIEW 3: Settings -->
+    <div id="view-settings" class="view-content">
+      <!-- SafeGuard Shield Settings Card -->
+      <div class="card">
+        <div class="card-title">
+          <span style="display: flex; align-items: center; gap: 6px; color: var(--text-primary);">
+            <svg style="width:14px; height:14px; fill:var(--emerald);" viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+            Content Safety Shield
+          </span>
+        </div>
+        
+        <!-- Main Shield Toggle -->
+        <div class="form-group">
+          <div class="toggle-container">
+            <div>
+              <span class="form-label">Auto-Blur Explicit & 18+ Media</span>
+              <span style="font-size: 0.72rem; color: var(--text-secondary);">Blurs explicit images, nudity, and adult content</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="safeguard-toggle" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Strict Mode Toggle -->
+        <div class="form-group" style="margin-top: 12px;">
+          <div class="toggle-container">
+            <div>
+              <span class="form-label">Strict Protection for Minors</span>
+              <span style="font-size: 0.72rem; color: var(--text-secondary);">Also blurs gambling, drugs, violence & suggestive media</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="safeguard-strict-toggle">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Allow Reveal Toggle -->
+        <div class="form-group" style="margin-top: 12px;">
+          <div class="toggle-container">
+            <div>
+              <span class="form-label">Allow Click-to-Reveal</span>
+              <span style="font-size: 0.72rem; color: var(--text-secondary);">Show warning confirmation before unblurring</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="safeguard-reveal-toggle" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <button id="save-safeguard-btn" class="settings-save-btn" style="margin-top: 14px;">Save Safety Preferences</button>
+      </div>
+
+      <!-- Hidden Technical API Controls (Fully automated in background) -->
+      <div id="hidden-api-section" style="display: none !important;">
+        <input type="checkbox" id="live-api-toggle" checked>
+        <div id="api-key-group">
+          <input type="password" id="api-key-input" value="">
+        </div>
+        <button id="save-settings-btn"></button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">About Luna</div>
+        <div style="font-size: 0.78rem; color: var(--text-secondary); line-height: 1.55;">
+          <p style="margin-bottom: 6px;">Luna is your personal web companion, designed to read chaotic pages, guide you through applications, and protect your family from unsafe imagery.</p>
+          <p style="color: var(--text-muted); font-size: 0.72rem;">Luna Version 1.0 • Client-side privacy guaranteed</p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Status / Alert Toast -->
+  <div id="toast" class="status-toast">
+    <div class="spinner" id="toast-spinner" style="display: none;"></div>
+    <span id="toast-text">System Active</span>
+  </div>
+
+  <script src="config.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>
