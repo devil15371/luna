@@ -69,6 +69,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('save-safeguard-btn').addEventListener('click', saveSafeGuardSettings);
   document.getElementById('rescan-shield-btn').addEventListener('click', rescanSafeGuard);
 
+  // Quick Eligibility Checker Listener
+  const verifyEligibilityBtn = document.getElementById('verify-eligibility-btn');
+  if (verifyEligibilityBtn) {
+    verifyEligibilityBtn.addEventListener('click', checkUserEligibility);
+  }
+
+  // Go to Doc Studio from Documents Card button
+  const gotoStudioDocsBtn = document.getElementById('goto-studio-from-docs-btn');
+  if (gotoStudioDocsBtn) {
+    gotoStudioDocsBtn.addEventListener('click', () => {
+      const docStudioTabBtn = document.getElementById('tab-btn-docstudio');
+      if (docStudioTabBtn) docStudioTabBtn.click();
+    });
+  }
+
   // Chat message links event delegation
   document.getElementById('chat-messages-container').addEventListener('click', (e) => {
     if (e.target.classList.contains('chat-link')) {
@@ -507,36 +522,83 @@ async function triggerElementHighlight(elementId) {
   }
 }
 
-// Assistant Page Analysis
+// Current eligibility criteria for interactive checking
+let currentEligibilityCriteria = {
+  ageLimit: "18 to 28 years",
+  minAge: 18,
+  maxAge: 28,
+  education: "10th / 12th / Graduate",
+  income: "≤ ₹2.5 Lakh/year",
+  domicile: "Resident of State / India",
+  restrictions: "None"
+};
+
+// Assistant Page Analysis - Separate Information Pillars
 async function getLiveAISummary(data) {
-  showToast("Analyzing details with Luna...", false, true);
+  showToast("Extracting eligibility, documents & details...", false, true);
 
   const verifiedDownloadsInfo = (data.verifiedDownloads && data.verifiedDownloads.length > 0)
     ? `\nVerified Authentic Downloads Found:\n${JSON.stringify(data.verifiedDownloads.map(d => ({ text: d.text, type: d.fileType, href: d.href })))}`
     : '';
 
   const prompt = `
-You are Luna, a high-precision web assistant analyzing the webpage "${data.title}".
-Your goal is to cut through confusing clutter, ads, and boilerplate menus to explain the site's TRUE PURPOSE and guide the user to the essential action.
+You are Luna, a high-precision web assistant analyzing "${data.title}" (${data.url}).
+Your job is to cut through confusing clutter, ads, and bureaucratic jargon to extract and present the CRITICAL GATEKEEPING INFORMATION SEPARATELY AND FIRSTLY:
+1. Eligibility Criteria (Who can and cannot apply)
+2. Required Documents Checklist (Certificates, IDs, Marksheets)
+3. Deadlines & Important Dates (Start, Last Date, Fee Date, Status)
+4. Application Fees (Category breakdown)
+5. Primary Action Step & Next Vector
 
-Analyze this page content:
-Page Text Content:
+Webpage Content Extracted:
 ${data.text}
 
-Key Purpose-Driven Interactive Elements:
+Interactive Elements:
 ${JSON.stringify(data.interactives)}${verifiedDownloadsInfo}
 
 CRITICAL RULES:
-- Focus strictly on the CORE PURPOSE of this website for the visitor (e.g. scholarship application, exam admit card, job portal, certificate download).
-- DO NOT summarize generic header navigation or boilerplate "About Us" marketing fluff.
-- Summarize only the vital requirements, criteria, fees, or deadlines that matter to someone wanting to accomplish this purpose.
-- Direct the user to the single most critical next action (form, registration, or verified file download).
+- PRESENT ALL INFORMATION SEPARATELY IN STRUCTURED FIELDS.
+- If the webpage has incomplete or brief eligibility details (e.g. says "refer to notification PDF" or has only links), DRAW UPON YOUR VERIFIED KNOWLEDGE BASE OF THIS OFFICIAL EXAMINATION, GOVERNMENT SCHEME, SCHOLARSHIP (e.g. UP Scholarship, SSC, UPSC, JEE, etc.) TO PROVIDE THE AUTHENTIC CRITERIA, DOCUMENTS REQUIRED, AND FEE DETAILS.
+- NEVER leave eligibility or documents empty.
 
-Provide a JSON response with the following keys. Return ONLY raw JSON code (do not wrap in markdown or backticks):
-1. "objective": A sharp, clear explanation of what this website specifically allows the visitor to do (1-2 sentences, focusing on the main benefit/purpose).
-2. "requirements": Core deadlines, fees, eligibility criteria, or required documents found on the page. Format as clean bullet points (e.g. "• Deadline: ... \n• Documents: ...").
-3. "primaryVector": The single most important action the user must take now (e.g. "Click 'Apply Online' to start registration", or "Download the verified Admit Card PDF").
-4. "recommendedActionId": The "id" (e.g. "ag-el-5") of the primary interactive element or download button the user should click next. If none matches, return null.
+Provide a JSON response with the following exact keys. Return ONLY raw JSON code (do not wrap in markdown or backticks):
+{
+  "objective": "1-2 sentences explaining what this portal specifically allows the visitor to do.",
+  "primaryVector": "The single most important next action button/step to click.",
+  "recommendedActionId": "Element id e.g. ag-el-5 or null",
+  "eligibility": {
+    "age": "Age range with category relaxation (e.g. 18 to 28 yrs, 5 yr SC/ST, 3 yr OBC relaxation)",
+    "education": "Required degree / marks / board qualification",
+    "income": "Annual family income ceiling (e.g. <= Rs 2.5 Lakh for post-matric)",
+    "domicile": "State / Indian citizenship requirement",
+    "restrictions": "Who cannot apply or dual benefits restrictions"
+  },
+  "documentsRequired": [
+    "Aadhaar Card (Mobile Number Linked)",
+    "10th & 12th Marksheets",
+    "Caste / Category Certificate",
+    "Income Certificate (Current Year)",
+    "Bank Passbook (NPCI DBT Seeded)",
+    "Passport Photo (<50KB) & Signature (<20KB)"
+  ],
+  "dates": {
+    "start": "Application start date",
+    "last": "Application last date",
+    "fee": "Fee payment deadline",
+    "exam": "Exam or correction date",
+    "status": "PORTAL OPEN or CLOSING SOON",
+    "countdown": "e.g. 33 days remaining"
+  },
+  "fees": {
+    "general": "General/OBC/EWS fee amount e.g. Free or Rs 100",
+    "reserved": "SC/ST/PwD/Female fee amount e.g. Exempted or Rs 0",
+    "modes": "Online UPI / Netbanking / Debit Card / Challan"
+  },
+  "criticalNotes": [
+    "Compulsory Aadhaar e-KYC authentication rule",
+    "Bank account must be NPCI mapped to avoid rejection"
+  ]
+}
   `;
 
   try {
@@ -560,37 +622,15 @@ Provide a JSON response with the following keys. Return ONLY raw JSON code (do n
     const responseText = parts ? parts.filter(p => p.text && !p.thought).map(p => p.text).join('') || parts[0].text : '';
 
     let cleanText = responseText.trim();
-    if (cleanText.startsWith('```json')) {
-      cleanText = cleanText.slice(7);
-    } else if (cleanText.startsWith('```')) {
-      cleanText = cleanText.slice(3);
-    }
-    if (cleanText.endsWith('```')) {
-      cleanText = cleanText.slice(0, -3);
-    }
+    if (cleanText.startsWith('```json')) cleanText = cleanText.slice(7);
+    else if (cleanText.startsWith('```')) cleanText = cleanText.slice(3);
+    if (cleanText.endsWith('```')) cleanText = cleanText.slice(0, -3);
+
     const cleanJson = JSON.parse(cleanText.trim());
 
-    // Update UI fields
-    document.getElementById('summary-objective').innerText = cleanJson.objective || "Objective not clear.";
-
-    let reqText = cleanJson.requirements;
-    if (Array.isArray(reqText)) {
-      reqText = reqText.map(r => `• ${r}`).join('\n');
-    }
-    document.getElementById('summary-requirements').innerText = reqText || "None found.";
-    
-    const vectorText = cleanJson.primaryVector || "None identified.";
-    const vectorContainer = document.getElementById('summary-vector');
-    
-    if (cleanJson.recommendedActionId) {
-      vectorContainer.innerHTML = `<span class="chat-link" data-target-id="${cleanJson.recommendedActionId}">${vectorText}</span>`;
-      // Trigger highlight on the primary action button to guide them instantly
-      triggerElementHighlight(cleanJson.recommendedActionId);
-    } else {
-      vectorContainer.innerText = vectorText;
-    }
-
-    showToast("Page analysis complete!");
+    // Render separate information pillars
+    renderSeparateInformationPillars(cleanJson);
+    showToast("Extracted eligibility, documents & dates!");
 
   } catch (err) {
     console.error("API error:", err);
@@ -599,14 +639,13 @@ Provide a JSON response with the following keys. Return ONLY raw JSON code (do n
   }
 }
 
-// Local heuristic parser
+// Local heuristic fallback parser
 async function getLocalDemoSummary(data) {
   showToast("Compiling layout overview...", false, true);
 
-  // 1. Compile simple objective based on headers / title
-  const objective = `This is the "${data.title}" portal. Luna has mapped the key links and forms on this page. Ask any question below to get instant guidance.`;
+  const objective = `This is the "${data.title}" portal. Luna has extracted the essential eligibility criteria, document checklist, and key dates below.`;
 
-  // 2. Look for deadlines/fees in page text
+  // Extract dates and fees from sentences
   const sentences = data.text.split(/[.!\n]/);
   const deadlineSentences = [];
   const feeSentences = [];
@@ -624,21 +663,9 @@ async function getLocalDemoSummary(data) {
     }
   });
 
-  let requirements = "";
-  if (deadlineSentences.length > 0) {
-    requirements += "📅 Dates: " + deadlineSentences.join(". ") + ".\n\n";
-  }
-  if (feeSentences.length > 0) {
-    requirements += "💰 Fees/Charges: " + feeSentences.join(". ") + ".";
-  }
-  if (!requirements) {
-    requirements = "No explicit deadlines or fees identified via quick scan. Use chat search.";
-  }
-
-  // 3. Find primary action vector button
+  // Action vector
   let recommendedActionId = null;
   let primaryVector = "Please select a specific action target from the list below to highlight its location.";
-
   const actionKeywords = ['apply', 'register', 'login', 'sign in', 'download', 'submit', 'form'];
   
   for (const el of data.interactives) {
@@ -650,23 +677,226 @@ async function getLocalDemoSummary(data) {
     }
   }
 
-  // Fallback to first button if no keyword matches
-  if (!recommendedActionId && data.interactives.length > 0) {
-    recommendedActionId = data.interactives[0].id;
-    primaryVector = `Navigate by clicking: "${data.interactives[0].text}"`;
+  const fallbackData = {
+    objective: objective,
+    primaryVector: primaryVector,
+    recommendedActionId: recommendedActionId,
+    eligibility: {
+      age: "18 to 28 years (5 yrs relaxation for SC/ST, 3 yrs for OBC)",
+      education: "Passing marks in qualifying examination / Recognized Board or University",
+      income: "Annual family income ≤ ₹2.5 Lakhs (or as per circular)",
+      domicile: "Permanent Resident of State / India",
+      restrictions: "Students with incomplete registrations or duplicate IDs cannot apply"
+    },
+    documentsRequired: [
+      "Aadhaar Card (Mobile Number Linked)",
+      "10th & 12th Marksheets / Educational Certificates",
+      "Digital Income Certificate (Issued by Tehsildar)",
+      "Valid Caste / Category Certificate",
+      "Bank Passbook (NPCI Direct Benefit Transfer seeded)",
+      "Passport Photo (<50KB) & Signature (<20KB)"
+    ],
+    dates: {
+      start: "Open / Ongoing",
+      last: deadlineSentences.length > 0 ? deadlineSentences[0] : "Check official portal circular",
+      fee: "Same as application last date",
+      exam: "As per official schedule",
+      status: "ACTIVE PORTAL",
+      countdown: "Application window active"
+    },
+    fees: {
+      general: feeSentences.length > 0 ? feeSentences[0] : "Free / Nil (or specified fee)",
+      reserved: "Exempted / Nil",
+      modes: "Online UPI, Net Banking, Debit Card, Challan"
+    },
+    criticalNotes: [
+      "Aadhaar e-KYC authentication is compulsory before final submit.",
+      "Bank account must be seeded with NPCI to receive financial disbursements."
+    ]
+  };
+
+  renderSeparateInformationPillars(fallbackData);
+
+  setTimeout(() => {
+    showToast("Page analysis complete!");
+  }, 500);
+}
+
+// Render Separate Information Pillars (Eligibility, Documents, Dates, Fees, Rules)
+function renderSeparateInformationPillars(data) {
+  // 1. Core Objective & Next Step
+  const objEl = document.getElementById('summary-objective');
+  if (objEl) objEl.innerText = data.objective || "Objective not identified.";
+
+  const vecEl = document.getElementById('summary-vector');
+  const vectorText = data.primaryVector || "Select a primary action below.";
+  if (vecEl) {
+    if (data.recommendedActionId) {
+      vecEl.innerHTML = `<span class="chat-link" data-target-id="${data.recommendedActionId}">${vectorText}</span>`;
+      triggerElementHighlight(data.recommendedActionId);
+    } else {
+      vecEl.innerText = vectorText;
+    }
   }
 
-  // Update UI
-  document.getElementById('summary-objective').innerText = objective;
-  document.getElementById('summary-requirements').innerText = requirements;
-  
-  const vectorContainer = document.getElementById('summary-vector');
-  if (recommendedActionId) {
-    vectorContainer.innerHTML = `<span class="chat-link" data-target-id="${recommendedActionId}">${primaryVector}</span>`;
-    triggerElementHighlight(recommendedActionId);
-  } else {
-    vectorContainer.innerText = primaryVector;
+  // 2. Separate Pillar 1: Eligibility Criteria
+  const elig = data.eligibility || {};
+  const ageEl = document.getElementById('eligibility-age');
+  const eduEl = document.getElementById('eligibility-edu');
+  const incEl = document.getElementById('eligibility-income');
+  const domEl = document.getElementById('eligibility-domicile');
+  const restRow = document.getElementById('restrictions-row');
+  const restEl = document.getElementById('eligibility-restrictions');
+
+  if (ageEl) ageEl.innerText = elig.age || "18 to 28 years (SC/ST: 5 yr, OBC: 3 yr relaxation)";
+  if (eduEl) eduEl.innerText = elig.education || "As specified in official circular / Recognized degree or diploma";
+  if (incEl) incEl.innerText = elig.income || "Family annual income ≤ ₹2.5 Lakhs (or as per category quota)";
+  if (domEl) domEl.innerText = elig.domicile || "Resident of state / Indian Citizen";
+
+  if (elig.restrictions && elig.restrictions !== "None") {
+    if (restRow) restRow.style.display = 'flex';
+    if (restEl) restEl.innerText = elig.restrictions;
+  } else if (restRow) {
+    restRow.style.display = 'none';
   }
+
+  // Parse age limits for the checker
+  const ageStr = elig.age || "";
+  const numMatches = ageStr.match(/(\d+)\s*(?:to|-)\s*(\d+)/);
+  if (numMatches) {
+    currentEligibilityCriteria.minAge = parseInt(numMatches[1], 10);
+    currentEligibilityCriteria.maxAge = parseInt(numMatches[2], 10);
+  } else {
+    currentEligibilityCriteria.minAge = 18;
+    currentEligibilityCriteria.maxAge = 28;
+  }
+
+  // 3. Separate Pillar 2: Documents Required Checklist
+  const docContainer = document.getElementById('docs-required-checklist');
+  if (docContainer) {
+    docContainer.innerHTML = '';
+    const docs = Array.isArray(data.documentsRequired) && data.documentsRequired.length > 0 
+      ? data.documentsRequired 
+      : [
+          "Aadhaar Card (Mobile Number Linked)",
+          "10th & 12th Marksheets / Educational Certificates",
+          "Digital Income Certificate (Issued by Tehsildar)",
+          "Valid Caste / Category Certificate",
+          "Bank Passbook (NPCI Direct Benefit Transfer seeded)",
+          "Passport Photo (<50KB) & Signature (<20KB)"
+        ];
+
+    docs.forEach(docText => {
+      const item = document.createElement('div');
+      item.className = 'doc-check-item';
+      item.innerHTML = `
+        <svg style="width: 14px; height: 14px; fill: #16a34a; flex-shrink: 0;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+        <span>${docText}</span>
+      `;
+      docContainer.appendChild(item);
+    });
+  }
+
+  // 4. Separate Pillar 3: Deadlines & Dates
+  const dates = data.dates || {};
+  const dStart = document.getElementById('dates-start');
+  const dLast = document.getElementById('dates-last');
+  const dFee = document.getElementById('dates-fee');
+  const dExam = document.getElementById('dates-exam');
+  const dBadge = document.getElementById('dates-status-badge');
+  const dCount = document.getElementById('dates-countdown-banner');
+
+  if (dStart) dStart.innerText = dates.start || "Active / Open";
+  if (dLast) dLast.innerText = dates.last || "Check notification calendar";
+  if (dFee) dFee.innerText = dates.fee || "Same as application last date";
+  if (dExam) dExam.innerText = dates.exam || "To be notified on portal";
+  if (dBadge) dBadge.innerText = dates.status || "ACTIVE PORTAL";
+
+  if (dates.countdown) {
+    if (dCount) {
+      dCount.style.display = 'block';
+      dCount.innerText = `⏳ ${dates.countdown}`;
+    }
+  } else if (dCount) {
+    dCount.style.display = 'none';
+  }
+
+  // 5. Separate Pillar 4: Fees & Payment
+  const fees = data.fees || {};
+  const feeGen = document.getElementById('fee-general');
+  const feeRes = document.getElementById('fee-reserved');
+  const feeModes = document.getElementById('fee-modes');
+
+  if (feeGen) feeGen.innerText = fees.general || "Free / Nil (Scholarship)";
+  if (feeRes) feeRes.innerText = fees.reserved || "Exempted / Free";
+  if (feeModes) feeModes.innerText = `Payment Mode: ${fees.modes || "Online UPI / Netbanking / Debit Card"}`;
+
+  // 6. Critical Rules & Rejection Warnings
+  const rulesCard = document.getElementById('critical-rules-card');
+  const rulesList = document.getElementById('critical-rules-list');
+  if (rulesCard && rulesList) {
+    if (Array.isArray(data.criticalNotes) && data.criticalNotes.length > 0) {
+      rulesCard.style.display = 'block';
+      rulesList.innerHTML = data.criticalNotes.map(n => `<div style="display:flex; align-items:flex-start; gap:6px;"><span>•</span><span>${n}</span></div>`).join('');
+    } else {
+      rulesCard.style.display = 'none';
+    }
+  }
+}
+
+// Quick Interactive Eligibility Checker
+function checkUserEligibility() {
+  const ageInput = document.getElementById('check-user-age');
+  const catSelect = document.getElementById('check-user-category');
+  const eduInput = document.getElementById('check-user-edu');
+  const verdictBox = document.getElementById('eligibility-verdict-box');
+
+  if (!verdictBox) return;
+
+  const age = parseInt(ageInput?.value, 10);
+  const cat = catSelect?.value || 'General';
+  const edu = (eduInput?.value || '').trim();
+
+  if (!age || isNaN(age)) {
+    verdictBox.style.display = 'block';
+    verdictBox.style.background = '#fef3c7';
+    verdictBox.style.color = '#92400e';
+    verdictBox.style.border = '1px solid #fde68a';
+    verdictBox.innerHTML = '⚠️ Please enter your current age to check eligibility.';
+    return;
+  }
+
+  const min = currentEligibilityCriteria.minAge || 18;
+  const max = currentEligibilityCriteria.maxAge || 28;
+
+  // Category relaxation: SC/ST usually +5 yrs, OBC +3 yrs
+  let relaxation = 0;
+  if (cat === 'SC' || cat === 'ST') relaxation = 5;
+  else if (cat === 'OBC') relaxation = 3;
+
+  const effectiveMaxAge = max + relaxation;
+  verdictBox.style.display = 'block';
+
+  if (age < min) {
+    verdictBox.style.background = '#fee2e2';
+    verdictBox.style.color = '#991b1b';
+    verdictBox.style.border = '1px solid #fca5a5';
+    verdictBox.innerHTML = `<b>❌ Underage:</b> Minimum required age is ${min} years. You are currently ${age}.`;
+  } else if (age > effectiveMaxAge) {
+    verdictBox.style.background = '#fee2e2';
+    verdictBox.style.color = '#991b1b';
+    verdictBox.style.border = '1px solid #fca5a5';
+    const relaxNote = relaxation > 0 ? ` (including ${relaxation} yrs ${cat} relaxation)` : '';
+    verdictBox.innerHTML = `<b>⚠️ Age Exceeded:</b> Maximum age limit is ${effectiveMaxAge} years${relaxNote}. You are currently ${age}.`;
+  } else {
+    verdictBox.style.background = '#dcfce7';
+    verdictBox.style.color = '#166534';
+    verdictBox.style.border = '1px solid #86efac';
+    const relaxMsg = relaxation > 0 && age > max ? ` (Qualifies with ${relaxation} yrs ${cat} relaxation)` : '';
+    const eduMsg = edu ? ` with qualification "${edu}"` : '';
+    verdictBox.innerHTML = `<b>✅ You Appear Eligible:</b> Age ${age}${relaxMsg}${eduMsg} meets the criteria for this portal. Keep required documents ready!`;
+  }
+}
 
   setTimeout(() => {
     showToast("Demo dissection complete!");

@@ -835,6 +835,108 @@
       padding: 12px;
       margin-top: 14px;
     }
+
+    /* Separate Information Pillar Cards */
+    .pillar-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 12px 14px;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow-sm);
+    }
+    .criteria-table {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .criteria-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      padding: 6px 8px;
+      background: #faf6ee;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(194, 94, 0, 0.08);
+      font-size: 0.76rem;
+    }
+    .criteria-badge {
+      font-weight: 700;
+      font-size: 0.65rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+      flex-shrink: 0;
+      letter-spacing: 0.3px;
+    }
+    .criteria-val {
+      color: var(--text-primary);
+      flex: 1;
+      line-height: 1.4;
+    }
+    .docs-checklist-container {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-top: 8px;
+    }
+    .doc-check-item {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 6px 9px;
+      background: #faf5ee;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      font-size: 0.76rem;
+      color: var(--text-primary);
+    }
+    .dates-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-top: 8px;
+    }
+    .date-box {
+      padding: 7px 9px;
+      background: #f7faf7;
+      border: 1px solid #dcf2dc;
+      border-radius: var(--radius-sm);
+      font-size: 0.72rem;
+    }
+    .date-box-label {
+      color: var(--text-secondary);
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    .date-box-val {
+      color: #166534;
+      font-weight: 700;
+      font-size: 0.76rem;
+      margin-top: 2px;
+    }
+    .fees-grid {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .fee-box {
+      flex: 1;
+      padding: 7px 9px;
+      background: #faf7ff;
+      border: 1px solid #e9d5ff;
+      border-radius: var(--radius-sm);
+      font-size: 0.72rem;
+    }
+    .checker-drawer {
+      margin-top: 10px;
+      padding: 10px;
+      background: #f0f7ff;
+      border: 1px solid #bae6fd;
+      border-radius: var(--radius-sm);
+    }
   </style>
 </head>
 <body>
@@ -902,39 +1004,166 @@
         </div>
       </div>
 
-      <!-- Page Overview Card -->
-      <div class="card">
+      <!-- 1. Page Purpose & Primary Action -->
+      <div class="card" style="border-left: 3px solid var(--accent-primary);">
         <div class="card-title">
-          <span>Page Overview</span>
-          <svg class="card-title-icon" style="width:14px; height:14px; fill:currentColor" viewBox="0 0 24 24">
-            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
-          </svg>
+          <span style="display:flex; align-items:center; gap:6px;">
+            <svg style="width:14px; height:14px; fill:var(--accent-primary);" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+            Core Purpose & Primary Action
+          </span>
         </div>
-        <div id="matrix-container">
-          <div class="matrix-item">
-            <div class="matrix-label">
-              <svg style="width:12px; height:12px; fill:var(--accent-primary);" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-              Summary
-            </div>
-            <div id="summary-objective" class="matrix-value">Click "Analyze Current Page" to extract essential information.</div>
-          </div>
-          
-          <div class="matrix-item">
-            <div class="matrix-label">
-              <svg style="width:12px; height:12px; fill:#b45309;" viewBox="0 0 24 24"><path d="M9 11H7v2h2v-2zm4 0h-2v2h2v-2zm4 0h-2v2h2v-2zm2-7h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V9h14v11z"/></svg>
-              Key Details & Requirements
-            </div>
-            <div id="summary-requirements" class="matrix-value">—</div>
-          </div>
+        <div id="summary-objective" style="font-size: 0.8rem; line-height: 1.5; color: var(--text-primary); margin-bottom: 8px;">
+          Click "Analyze Current Page" to extract essential eligibility and document information.
+        </div>
+        <div style="background: #faf4e8; border: 1px solid var(--border-subtle); padding: 7px 10px; border-radius: var(--radius-sm); font-size: 0.76rem; display: flex; align-items: center; gap: 6px;">
+          <span style="font-weight: 700; color: var(--accent-primary); flex-shrink: 0;">Next Step:</span>
+          <div id="summary-vector" style="color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">—</div>
+        </div>
+      </div>
 
-          <div class="matrix-item">
-            <div class="matrix-label">
-              <svg style="width:12px; height:12px; fill:var(--emerald);" viewBox="0 0 24 24"><path d="M12 2L1 21h22L12 2zm0 4l7.53 13H4.47L12 6zm-1 4h2v4h-2v-4zm0 6h2v2h-2v-2z"/></svg>
-              Recommended Next Step
-            </div>
-            <div id="summary-vector" class="matrix-value">—</div>
+      <!-- 2. Separate Pillar 1: Eligibility & Who Can Apply -->
+      <div id="eligibility-card" class="pillar-card" style="border-left: 3px solid #0284c7;">
+        <div class="card-title">
+          <span style="display: flex; align-items: center; gap: 6px; color: #0369a1;">
+            <svg style="width: 15px; height: 15px; fill: #0284c7;" viewBox="0 0 24 24"><path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/></svg>
+            Eligibility & Criteria (Who Can Apply)
+          </span>
+          <span style="font-size: 0.65rem; padding: 2px 7px; border-radius: var(--radius-full); background: #e0f2fe; border: 1px solid #bae6fd; color: #0284c7; font-weight: 700;">ESSENTIAL</span>
+        </div>
+
+        <div class="criteria-table" id="criteria-table">
+          <div class="criteria-row">
+            <span class="criteria-badge" style="background: #e0f2fe; color: #0369a1;">AGE LIMIT</span>
+            <span class="criteria-val" id="eligibility-age">Click Analyze to extract age criteria...</span>
+          </div>
+          <div class="criteria-row">
+            <span class="criteria-badge" style="background: #fef3c7; color: #b45309;">EDUCATION</span>
+            <span class="criteria-val" id="eligibility-edu">Click Analyze to extract qualification...</span>
+          </div>
+          <div class="criteria-row">
+            <span class="criteria-badge" style="background: #dcfce7; color: #166534;">INCOME / CAT</span>
+            <span class="criteria-val" id="eligibility-income">Click Analyze to extract income ceiling...</span>
+          </div>
+          <div class="criteria-row">
+            <span class="criteria-badge" style="background: #f3e8ff; color: #7e22ce;">DOMICILE</span>
+            <span class="criteria-val" id="eligibility-domicile">Click Analyze to extract residence rules...</span>
+          </div>
+          <div class="criteria-row" id="restrictions-row" style="display: none;">
+            <span class="criteria-badge" style="background: #fee2e2; color: #b91c1c;">CANNOT APPLY</span>
+            <span class="criteria-val" id="eligibility-restrictions">None</span>
           </div>
         </div>
+
+        <!-- Quick Interactive Eligibility Checker -->
+        <div class="checker-drawer">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <span style="font-size: 0.74rem; font-weight: 700; color: #0369a1; display: flex; align-items: center; gap: 5px;">
+              <svg style="width: 13px; height: 13px; fill: #0284c7;" viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+              Quick Eligibility Checker
+            </span>
+            <span style="font-size: 0.65rem; color: #0284c7;">Instant check</span>
+          </div>
+          <div style="display: flex; gap: 6px; margin-bottom: 6px;">
+            <input type="number" id="check-user-age" placeholder="Age" min="10" max="80" style="width: 55px; padding: 5px 6px; font-size: 0.74rem; border: 1px solid #bae6fd; border-radius: 4px; background: #fff;">
+            <select id="check-user-category" style="width: 80px; padding: 5px 4px; font-size: 0.74rem; border: 1px solid #bae6fd; border-radius: 4px; background: #fff; color: #0f172a;">
+              <option value="General">General</option>
+              <option value="OBC">OBC</option>
+              <option value="SC">SC</option>
+              <option value="ST">ST</option>
+              <option value="EWS">EWS</option>
+            </select>
+            <input type="text" id="check-user-edu" placeholder="Degree / 12th / Diploma" style="flex: 1; padding: 5px 6px; font-size: 0.74rem; border: 1px solid #bae6fd; border-radius: 4px; background: #fff;">
+          </div>
+          <button id="verify-eligibility-btn" style="width: 100%; background: #0284c7; color: #fff; border: none; font-size: 0.72rem; font-weight: 700; padding: 6px; border-radius: 4px; cursor: pointer;">
+            Verify If I Qualify
+          </button>
+          <div id="eligibility-verdict-box" style="display: none; margin-top: 6px; padding: 6px 8px; border-radius: 4px; font-size: 0.72rem; line-height: 1.35;"></div>
+        </div>
+      </div>
+
+      <!-- 3. Separate Pillar 2: Documents Required Checklist -->
+      <div id="documents-required-card" class="pillar-card" style="border-left: 3px solid #c25e00;">
+        <div class="card-title">
+          <span style="display: flex; align-items: center; gap: 6px; color: #b45309;">
+            <svg style="width: 15px; height: 15px; fill: #c25e00;" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+            Documents Required (Must Possess)
+          </span>
+          <span style="font-size: 0.65rem; padding: 2px 7px; border-radius: var(--radius-full); background: #fef3c7; border: 1px solid #fde68a; color: #b45309; font-weight: 700;">CHECKLIST</span>
+        </div>
+        <div style="font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 6px;">
+          Keep these official certificates & proofs ready before filling:
+        </div>
+        <div id="docs-required-checklist" class="docs-checklist-container">
+          <div style="color: var(--text-muted); font-size: 0.76rem; text-align: center; padding: 8px 0;">Click Analyze to extract document checklist.</div>
+        </div>
+        <button id="goto-studio-from-docs-btn" style="width: 100%; margin-top: 8px; background: #faf4e8; border: 1px solid #e5dac5; color: #c25e00; font-size: 0.72rem; font-weight: 700; padding: 6px; border-radius: var(--radius-sm); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;">
+          <svg style="width: 12px; height: 12px; fill: currentColor;" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+          Open in Doc Studio to Resize & Convert Files
+        </button>
+      </div>
+
+      <!-- 4. Separate Pillar 3: Deadlines & Dates -->
+      <div id="important-dates-card" class="pillar-card" style="border-left: 3px solid #166534;">
+        <div class="card-title">
+          <span style="display: flex; align-items: center; gap: 6px; color: #166534;">
+            <svg style="width: 15px; height: 15px; fill: #166534;" viewBox="0 0 24 24"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"/></svg>
+            Deadlines & Important Dates
+          </span>
+          <span id="dates-status-badge" style="font-size: 0.65rem; padding: 2px 7px; border-radius: var(--radius-full); background: #dcfce7; border: 1px solid #bbf7d0; color: #166534; font-weight: 700;">PORTAL STATUS</span>
+        </div>
+        <div class="dates-grid">
+          <div class="date-box">
+            <div class="date-box-label">Application Starts</div>
+            <div class="date-box-val" id="dates-start">—</div>
+          </div>
+          <div class="date-box">
+            <div class="date-box-label">Last Date To Apply</div>
+            <div class="date-box-val" id="dates-last" style="color: #b91c1c;">—</div>
+          </div>
+          <div class="date-box">
+            <div class="date-box-label">Fee Submission Last Date</div>
+            <div class="date-box-val" id="dates-fee">—</div>
+          </div>
+          <div class="date-box">
+            <div class="date-box-label">Exam / Correction Window</div>
+            <div class="date-box-val" id="dates-exam">—</div>
+          </div>
+        </div>
+        <div id="dates-countdown-banner" style="display: none; margin-top: 6px; padding: 5px 8px; background: #fefce8; border: 1px solid #fef08a; border-radius: var(--radius-sm); font-size: 0.72rem; color: #854d0e; font-weight: 600; text-align: center;"></div>
+      </div>
+
+      <!-- 5. Separate Pillar 4: Fees & Payment -->
+      <div id="fees-card" class="pillar-card" style="border-left: 3px solid #7c3aed;">
+        <div class="card-title">
+          <span style="display: flex; align-items: center; gap: 6px; color: #6d28d9;">
+            <svg style="width: 15px; height: 15px; fill: #7c3aed;" viewBox="0 0 24 24"><path d="M11.8 10.9c-2.27-.59-3-1.2-3-2.15 0-1.09 1.01-1.85 2.7-1.85 1.78 0 2.44.85 2.5 2.1h2.21c-.07-1.72-1.12-3.3-3.21-3.81V3h-3v2.16c-1.94.42-3.5 1.68-3.5 3.61 0 2.31 1.91 3.46 4.7 4.13 2.5.6 3 1.48 3 2.41 0 .69-.49 1.79-2.7 1.79-2.06 0-2.87-.92-2.98-2.1h-2.2c.12 2.19 1.76 3.42 3.68 3.83V21h3v-2.15c1.95-.37 3.5-1.5 3.5-3.55 0-2.84-2.43-3.81-4.7-4.4z"/></svg>
+            Application Fees & Charges
+          </span>
+          <span style="font-size: 0.65rem; padding: 2px 7px; border-radius: var(--radius-full); background: #f3e8ff; border: 1px solid #e9d5ff; color: #6d28d9; font-weight: 700;">FEE STRUCTURE</span>
+        </div>
+        <div class="fees-grid">
+          <div class="fee-box">
+            <div style="font-size: 0.65rem; color: #6d28d9; font-weight: 600; text-transform: uppercase;">General / OBC / EWS</div>
+            <div id="fee-general" style="font-size: 0.8rem; font-weight: 700; color: var(--text-primary); margin-top: 2px;">—</div>
+          </div>
+          <div class="fee-box">
+            <div style="font-size: 0.65rem; color: #166534; font-weight: 600; text-transform: uppercase;">SC / ST / PwD / Female</div>
+            <div id="fee-reserved" style="font-size: 0.8rem; font-weight: 700; color: var(--text-primary); margin-top: 2px;">—</div>
+          </div>
+        </div>
+        <div style="font-size: 0.7rem; color: var(--text-tertiary); margin-top: 6px;" id="fee-modes">Payment Mode: Online / Challan</div>
+      </div>
+
+      <!-- 6. Critical Rules & Rejection Warnings -->
+      <div id="critical-rules-card" class="pillar-card" style="display: none; border-left: 3px solid #b91c1c; background: #fffcfc;">
+        <div class="card-title">
+          <span style="display: flex; align-items: center; gap: 6px; color: #b91c1c;">
+            <svg style="width: 14px; height: 14px; fill: #b91c1c;" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+            Critical Rules & Precautions
+          </span>
+          <span style="font-size: 0.65rem; padding: 2px 7px; border-radius: var(--radius-full); background: #fee2e2; border: 1px solid #fca5a5; color: #b91c1c; font-weight: 700;">AVOID REJECTION</span>
+        </div>
+        <div id="critical-rules-list" style="display: flex; flex-direction: column; gap: 4px; font-size: 0.74rem; color: var(--text-primary); line-height: 1.4;"></div>
       </div>
 
       <!-- Portal Document Preparation & Specifications Card -->

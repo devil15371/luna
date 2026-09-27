@@ -2,11 +2,19 @@
 
 An intelligent, context-aware Chrome Extension (Manifest V3 Side Panel) designed to cut through chaotic web portals, government forms, and cluttered websites. 
 
-Luna extracts the core purpose of any webpage, filters out fake/ad download links to surface only verified direct files, detects portal upload requirements, provides an in-browser Document & Photo Converter/Compressor Studio, and features a SafeGuard content shield.
+Luna extracts the core purpose of any webpage, presents critical gatekeeping information (Eligibility Criteria, Documents Required, Deadlines, Fees) **separately and upfront**, filters out fake/ad download links to surface only verified direct files, provides an in-browser Document & Photo Converter/Compressor Studio, and features a SafeGuard content shield.
 
 ---
 
 ## ✨ Key Features
+
+- **🎓 Separate Information Pillars (Eligibility, Documents, Dates & Fees)**:
+  - **Eligibility & Criteria**: Clearly breaks down Age limits (with category relaxations), Minimum Qualifications, Income ceilings, and Domicile rules into dedicated rows so you know immediately if you qualify.
+  - **Interactive "Quick Eligibility Checker"**: Enter your Age, Category, and Qualification to get an instant verdict (`✅ You Qualify!` or `⚠️ Age Exceeded`) before starting lengthy forms.
+  - **Documents Required Checklist**: Structured checklist of official IDs, marksheets, income proofs, and photos you must possess to apply, with 1-click shortcuts to prepare them in Doc Studio.
+  - **Deadlines & Important Dates**: Separate view of Start date, Last date to apply (with live countdown e.g. `⏳ 33 Days Remaining`), Fee submission deadline, and Correction window.
+  - **Application Fees Breakdown**: Clear categorization of fees for General/OBC vs. SC/ST/PwD/Female, plus accepted payment modes.
+  - **Critical Warnings & Rules**: Essential precautions (e.g. Aadhaar e-KYC, NPCI bank seeding) to prevent application rejection.
 
 - **🖼️ In-Browser Doc & Photo Studio (Converter & Resizer)**:
   - **Format Conversion**: Convert between `PNG ⇄ JPG ⇄ PDF ⇄ WEBP` client-side with zero server uploads (100% private).
@@ -14,11 +22,6 @@ Luna extracts the core purpose of any webpage, filters out fake/ad download link
   - **Dimension & Aspect Ratio Resizer**: Set custom pixel dimensions or use standard portal ratios with smart center crop or fit scaling (e.g. Passport 3.5×4.5 cm / 350×450px).
   - **Direct PDF Generator**: Instantly generate clean, standard single-page PDF documents from image uploads right in the browser.
   - **1-Click Portal Presets**: Ready-made presets for Passport Photos, Scanned Signatures, Marksheets, and Certificates.
-
-- **📋 Pre-Flight Document Checklist & Detector**:
-  - Automatically scans portal forms and text for upload specifications (e.g. *"Passport photo must be under 50KB JPG"*, *"Marksheet PDF under 200KB"*).
-  - Surfaces a **Required Documents & Specs** card on the Overview dashboard.
-  - 1-Click **"Resize / Convert"** button loads the exact requirement parameters directly into Doc Studio!
 
 - **🛡️ Genuine Download Link Verifier**:
   - Automatically identifies authentic file downloads (`.pdf`, `.zip`, `.exe`, `.apk`, `.docx`, circulars, admit cards).
@@ -28,11 +31,6 @@ Luna extracts the core purpose of any webpage, filters out fake/ad download link
 - **🎯 Purpose-Driven Action Extraction**:
   - Intelligently filters out boilerplate navigation links (Home, About Us, Contact Us, Privacy Policy, Footers, and Social links).
   - Highlights essential purpose actions (Application forms, registration buttons, status checks, login portals).
-
-- **🧠 Core Purpose Webpage Summaries**:
-  - Summarizes *why* the website exists for the visitor and what key actions they need to take.
-  - Extracts critical dates, deadlines, eligibility criteria, and fees.
-  - Recommends the single most important next step with automatic visual element highlighting.
 
 - **💬 Interactive Assistant Chat**:
   - Ask Luna questions about the current page, deadlines, rules, or button locations.
@@ -52,7 +50,7 @@ Luna extracts the core purpose of any webpage, filters out fake/ad download link
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/devil15371/webion.git
+   git clone https://github.com/devil15371/luna.git
    ```
 
 2. **Load into Google Chrome**:
@@ -74,8 +72,8 @@ webion/
 ├── manifest.json       # Chrome Extension Manifest (V3 Side Panel & Permissions)
 ├── background.js       # Background service worker (side panel activation)
 ├── content.js          # DOM extractor, link verification, document requirements & SafeGuard shield
-├── sidepanel.html      # Luna Assistant interface with Doc Studio (Vintage aesthetic)
-├── sidepanel.js        # Controller, AI summarizer, pure JS PDF generator & adaptive compressor
+├── sidepanel.html      # Luna Assistant interface with separate information pillars & Doc Studio
+├── sidepanel.js        # Controller, AI extractor, pure JS PDF generator & eligibility checker
 ├── config.example.js   # Template configuration file for API credentials
 └── README.md           # Documentation
 ```
