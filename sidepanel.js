@@ -977,6 +977,7 @@ function checkUserEligibility() {
     const relaxMsg = relaxation > 0 && age > max ? ` (Qualifies with ${relaxation} yrs ${cat} relaxation)` : '';
     const eduMsg = edu ? ` with qualification "${edu}"` : '';
     verdictBox.innerHTML = `<b>✅ You Appear Eligible:</b> Age ${age}${relaxMsg}${eduMsg} meets the criteria for this portal. Keep required documents ready!`;
+  }
 }
 
 // Chat system
