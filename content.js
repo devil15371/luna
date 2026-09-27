@@ -626,12 +626,143 @@ function extractPageData() {
   const fullText = textBlocks.join('\n\n');
   const truncatedText = fullText.length > 25000 ? fullText.substring(0, 25000) + "\n\n[Content truncated for length...]" : fullText;
 
+  // Extract document and photo upload specifications
+  const documentRequirements = extractDocumentRequirements(fullText);
+
   return {
     title: title,
     url: window.location.href,
     text: truncatedText,
     interactives: interactives,
-    verifiedDownloads: verifiedDownloads
+    verifiedDownloads: verifiedDownloads,
+    documentRequirements: documentRequirements
+  };
+}
+
+// Analyzes page text and file inputs to extract specific upload specifications
+function extractDocumentRequirements(fullText) {
+  const requirements = [];
+  const seenTypes = new Set();
+
+  // 1. Inspect any <input type="file"> elements on the page
+  const fileInputs = document.querySelectorAll('input[type="file"]');
+  fileInputs.forEach((input) => {
+    const label = input.closest('label') || 
+                  (input.id ? document.querySelector(`label[for="${input.id}"]`) : null) ||
+                  input.closest('.form-group, .field, tr, td, div');
+    const containerText = label ? label.innerText.replace(/\s+/g, ' ').trim() : '';
+    const accept = input.getAttribute('accept') || '';
+
+    if (containerText.length > 3) {
+      const parsed = parseRequirementText(containerText, accept);
+      if (parsed && !seenTypes.has(parsed.type + parsed.maxKB)) {
+        seenTypes.add(parsed.type + parsed.maxKB);
+        requirements.push(parsed);
+      }
+    }
+  });
+
+  // 2. Scan text blocks for common requirement sentences
+  const sentences = fullText.split(/[.\n;]/);
+  const docKeywords = ['photograph', 'passport photo', 'photo', 'signature', 'sign', 'marksheet', 'certificate', 'domicile', 'caste certificate', 'income certificate', 'id proof'];
+  
+  sentences.forEach(sentence => {
+    const lower = sentence.toLowerCase();
+    const hasDocKeyword = docKeywords.some(kw => lower.includes(kw));
+    const hasSizeOrFormat = lower.includes('kb') || lower.includes('mb') || lower.includes('jpg') || lower.includes('jpeg') || lower.includes('png') || lower.includes('pdf') || lower.includes('pixel') || lower.includes('dimension') || lower.includes('3.5');
+
+    if (hasDocKeyword && hasSizeOrFormat && sentence.trim().length > 10 && sentence.trim().length < 250) {
+      const parsed = parseRequirementText(sentence.trim());
+      if (parsed && !seenTypes.has(parsed.type + parsed.maxKB)) {
+        seenTypes.add(parsed.type + parsed.maxKB);
+        requirements.push(parsed);
+      }
+    }
+  });
+
+  return requirements.slice(0, 6);
+}
+
+function parseRequirementText(rawText, acceptAttr = '') {
+  const lower = rawText.toLowerCase();
+
+  let type = 'document';
+  let label = 'Official Document';
+  let targetFormat = 'PDF';
+  let maxKB = 200;
+  let minKB = 0;
+  let width = 0;
+  let height = 0;
+  let preset = 'custom';
+
+  if (lower.includes('photo') || lower.includes('photograph') || lower.includes('pic') || lower.includes('image')) {
+    type = 'photo';
+    label = 'Passport Photograph';
+    targetFormat = 'JPG';
+    maxKB = 50;
+    minKB = 20;
+    width = 350;
+    height = 450;
+    preset = 'passport';
+  } else if (lower.includes('sign') || lower.includes('signature')) {
+    type = 'signature';
+    label = 'Scanned Signature';
+    targetFormat = 'JPG';
+    maxKB = 20;
+    minKB = 5;
+    width = 280;
+    height = 120;
+    preset = 'signature';
+  } else if (lower.includes('marksheet') || lower.includes('result') || lower.includes('grade') || lower.includes('10th') || lower.includes('12th')) {
+    type = 'marksheet';
+    label = 'Marksheet / Degree';
+    targetFormat = 'PDF';
+    maxKB = 200;
+    preset = 'marksheet';
+  } else if (lower.includes('certificate') || lower.includes('caste') || lower.includes('domicile') || lower.includes('income')) {
+    type = 'certificate';
+    label = 'Official Certificate';
+    targetFormat = 'PDF';
+    maxKB = 150;
+    preset = 'certificate';
+  }
+
+  // Extract explicit KB limits if present
+  const kbMatches = lower.match(/(?:max|maximum|under|less than|up to|not exceed|between \d+\s*(?:kb)?\s*to)?\s*(\d+)\s*kb/i);
+  if (kbMatches && kbMatches[1]) {
+    const num = parseInt(kbMatches[1], 10);
+    if (num >= 5 && num <= 10000) {
+      maxKB = num;
+    }
+  }
+
+  const mbMatches = lower.match(/(?:max|maximum|under|less than|up to)?\s*(\d+(?:\.\d+)?)\s*mb/i);
+  if (mbMatches && mbMatches[1]) {
+    const numMb = parseFloat(mbMatches[1]);
+    if (numMb > 0 && numMb <= 25) {
+      maxKB = Math.round(numMb * 1024);
+    }
+  }
+
+  // Extract format
+  if (lower.includes('pdf') || acceptAttr.includes('pdf')) {
+    targetFormat = 'PDF';
+  } else if (lower.includes('jpg') || lower.includes('jpeg') || acceptAttr.includes('jpeg') || acceptAttr.includes('jpg')) {
+    targetFormat = 'JPG';
+  } else if (lower.includes('png') || acceptAttr.includes('png')) {
+    targetFormat = 'PNG';
+  }
+
+  return {
+    type: type,
+    label: label,
+    instruction: rawText.replace(/\s+/g, ' ').trim().slice(0, 150),
+    targetFormat: targetFormat,
+    maxKB: maxKB,
+    minKB: minKB,
+    width: width,
+    height: height,
+    preset: preset
   };
 }
 

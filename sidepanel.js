@@ -22,6 +22,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Initialize Tab Switching
   initTabs();
 
+  // Initialize Doc & Photo Studio
+  initDocStudio();
+
   // Listen for tab activation / updates to track current page
   chrome.tabs.onActivated.addListener(async (activeInfo) => {
     await trackTab(activeInfo.tabId);
@@ -374,6 +377,9 @@ async function dissectPage() {
 
     parsedPageData = extractResults[0].result;
     
+    // Render portal document and upload requirements if detected
+    renderPortalDocRequirements(parsedPageData.documentRequirements || []);
+
     // Render verified downloads if genuine direct files were found
     renderVerifiedDownloads(parsedPageData.verifiedDownloads || []);
 
@@ -855,4 +861,643 @@ async function getMockChatResponse(question, indicator) {
       resolve();
     }, 1000);
   });
+}
+
+// ==========================================
+// 3. Portal Document Prep & Requirements
+// ==========================================
+
+function renderPortalDocRequirements(requirements) {
+  const card = document.getElementById('portal-docs-card');
+  const list = document.getElementById('portal-docs-list');
+  const studioBanner = document.getElementById('studio-detected-banner');
+  const studioBannerTitle = document.getElementById('studio-detected-title');
+  const studioBannerDesc = document.getElementById('studio-detected-desc');
+
+  if (!card || !list) return;
+
+  if (!requirements || requirements.length === 0) {
+    card.style.display = 'none';
+    list.innerHTML = '';
+    if (studioBanner) studioBanner.style.display = 'none';
+    return;
+  }
+
+  card.style.display = 'block';
+  list.innerHTML = '';
+
+  // Also update studio banner with top requirement
+  if (studioBanner && requirements[0]) {
+    studioBanner.style.display = 'block';
+    if (studioBannerTitle) studioBannerTitle.innerText = `Active Page: ${requirements[0].label}`;
+    if (studioBannerDesc) studioBannerDesc.innerText = requirements[0].instruction || `Max ${requirements[0].maxKB} KB in ${requirements[0].targetFormat}`;
+    
+    const applyBtn = document.getElementById('studio-apply-detected-btn');
+    if (applyBtn) {
+      applyBtn.onclick = () => {
+        applyRequirementToStudio(requirements[0]);
+        showToast(`Applied ${requirements[0].label} preset (${requirements[0].maxKB}KB ${requirements[0].targetFormat})`);
+      };
+    }
+  }
+
+  requirements.forEach(req => {
+    const row = document.createElement('div');
+    row.style.cssText = 'display: flex; align-items: center; justify-content: space-between; padding: 7px 9px; background: #ffffff; border: 1px solid #bae6fd; border-radius: var(--radius-sm); gap: 8px;';
+
+    const info = document.createElement('div');
+    info.style.cssText = 'display: flex; flex-direction: column; overflow: hidden;';
+
+    const topRow = document.createElement('div');
+    topRow.style.cssText = 'display: flex; align-items: center; gap: 6px;';
+
+    const badge = document.createElement('span');
+    badge.style.cssText = 'font-size: 0.62rem; font-weight: 700; background: #0284c7; color: #fff; padding: 2px 5px; border-radius: 3px; flex-shrink: 0;';
+    badge.innerText = req.targetFormat || 'DOC';
+
+    const titleSpan = document.createElement('span');
+    titleSpan.style.cssText = 'font-size: 0.76rem; font-weight: 600; color: #0369a1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
+    titleSpan.innerText = req.label;
+
+    topRow.appendChild(badge);
+    topRow.appendChild(titleSpan);
+
+    const descSpan = document.createElement('span');
+    descSpan.style.cssText = 'font-size: 0.68rem; color: #0284c7; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;';
+    descSpan.innerText = `Max ${req.maxKB} KB • ${req.instruction}`;
+
+    info.appendChild(topRow);
+    info.appendChild(descSpan);
+
+    const btn = document.createElement('button');
+    btn.style.cssText = 'font-size: 0.7rem; font-weight: 600; background: #0284c7; border: none; color: #ffffff; padding: 5px 8px; border-radius: var(--radius-sm); cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: background 0.15s ease;';
+    btn.innerText = 'Resize / Convert';
+    btn.addEventListener('click', () => {
+      // Switch to Doc Studio tab
+      const studioTabBtn = document.getElementById('tab-btn-docstudio');
+      if (studioTabBtn) studioTabBtn.click();
+
+      // Apply requirement
+      applyRequirementToStudio(req);
+      showToast(`Doc Studio pre-set to ${req.maxKB} KB ${req.targetFormat}`);
+    });
+
+    row.appendChild(info);
+    row.appendChild(btn);
+    list.appendChild(row);
+  });
+}
+
+function applyRequirementToStudio(req) {
+  let format = 'image/jpeg', ext = 'jpg';
+  if (req.targetFormat === 'PDF') { format = 'application/pdf'; ext = 'pdf'; }
+  else if (req.targetFormat === 'PNG') { format = 'image/png'; ext = 'png'; }
+
+  setStudioFormat(format, ext);
+  setStudioTargetKB(req.maxKB || 50);
+
+  if (req.width > 0 && req.height > 0) {
+    setStudioDimensions(req.width, req.height);
+  } else if (req.preset === 'passport') {
+    setStudioDimensions(350, 450);
+  } else if (req.preset === 'signature') {
+    setStudioDimensions(280, 120);
+  }
+
+  // Set active preset chip
+  document.querySelectorAll('.preset-chip').forEach(c => c.classList.remove('active'));
+  const matchChip = document.querySelector(`.preset-chip[data-preset="${req.preset}"]`);
+  if (matchChip) matchChip.classList.add('active');
+}
+
+// ==========================================
+// 4. In-Browser Pure JS Image to PDF Generator
+// ==========================================
+
+function createPdfFromJpeg(jpegUint8Array, widthPx, heightPx) {
+  const ptWidth = Math.round(widthPx * 72 / 96) || 300;
+  const ptHeight = Math.round(heightPx * 72 / 96) || 400;
+
+  const header = "%PDF-1.4\n";
+  const obj1 = "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n";
+  const obj2 = `2 0 obj\n<< /Pages [3 0 R] /Count 1 /Type /Pages >>\nendobj\n`;
+  const obj3 = `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${ptWidth} ${ptHeight}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>\nendobj\n`;
+  const imgHeader = `4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${widthPx} /Height ${heightPx} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpegUint8Array.length} >>\nstream\n`;
+  const imgFooter = "\nendstream\nendobj\n";
+  const contentStream = `q\n${ptWidth} 0 0 ${ptHeight} 0 0 cm\n/Im0 Do\nQ\n`;
+  const obj5 = `5 0 obj\n<< /Length ${contentStream.length} >>\nstream\n${contentStream}endstream\nendobj\n`;
+
+  const enc = new TextEncoder();
+  const headerBytes = enc.encode(header);
+  const obj1Bytes = enc.encode(obj1);
+  const obj2Bytes = enc.encode(obj2);
+  const obj3Bytes = enc.encode(obj3);
+  const imgHeaderBytes = enc.encode(imgHeader);
+  const imgFooterBytes = enc.encode(imgFooter);
+  const obj5Bytes = enc.encode(obj5);
+
+  let offset = headerBytes.length;
+  const offset1 = offset; offset += obj1Bytes.length;
+  const offset2 = offset; offset += obj2Bytes.length;
+  const offset3 = offset; offset += obj3Bytes.length;
+  const offset4 = offset; offset += imgHeaderBytes.length + jpegUint8Array.length + imgFooterBytes.length;
+  const offset5 = offset; offset += obj5Bytes.length;
+  const xrefOffset = offset;
+
+  const pad10 = (n) => String(n).padStart(10, '0');
+  const xref = `xref\n0 6\n0000000000 65535 f \n${pad10(offset1)} 00000 n \n${pad10(offset2)} 00000 n \n${pad10(offset3)} 00000 n \n${pad10(offset4)} 00000 n \n${pad10(offset5)} 00000 n \n`;
+  const trailer = `trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF\n`;
+  const xrefBytes = enc.encode(xref);
+  const trailerBytes = enc.encode(trailer);
+
+  const totalLength = offset + xrefBytes.length + trailerBytes.length;
+  const pdfBytes = new Uint8Array(totalLength);
+  let pos = 0;
+  function append(bytes) { pdfBytes.set(bytes, pos); pos += bytes.length; }
+
+  append(headerBytes);
+  append(obj1Bytes);
+  append(obj2Bytes);
+  append(obj3Bytes);
+  append(imgHeaderBytes);
+  append(jpegUint8Array);
+  append(imgFooterBytes);
+  append(obj5Bytes);
+  append(xrefBytes);
+  append(trailerBytes);
+
+  return pdfBytes;
+}
+
+// ==========================================
+// 5. Doc & Photo Studio State & Engine
+// ==========================================
+
+let studioState = {
+  file: null,
+  fileName: '',
+  fileType: '',
+  fileSize: 0,
+  img: null,
+  origWidth: 0,
+  origHeight: 0,
+  targetFormat: 'image/jpeg',
+  targetExt: 'jpg',
+  targetKB: 50,
+  targetWidth: 350,
+  targetHeight: 450,
+  lockRatio: true,
+  aspectRatio: 350 / 450,
+  preset: 'passport',
+  processedBlob: null,
+  processedUrl: null,
+  resultFileName: ''
+};
+
+function initDocStudio() {
+  const dropzone = document.getElementById('studio-dropzone');
+  const fileInput = document.getElementById('studio-file-input');
+  const removeBtn = document.getElementById('studio-remove-file-btn');
+  const targetKbInput = document.getElementById('studio-target-kb');
+  const widthInput = document.getElementById('studio-width');
+  const heightInput = document.getElementById('studio-height');
+  const lockRatioCheckbox = document.getElementById('studio-lock-ratio');
+  const processBtn = document.getElementById('studio-process-btn');
+  const downloadBtn = document.getElementById('studio-download-btn');
+
+  if (!dropzone || !fileInput) return;
+
+  // Drag & drop handlers
+  dropzone.addEventListener('click', () => fileInput.click());
+  dropzone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropzone.classList.add('dragover');
+  });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleStudioFile(e.dataTransfer.files[0]);
+    }
+  });
+
+  fileInput.addEventListener('change', (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      handleStudioFile(e.target.files[0]);
+    }
+  });
+
+  if (removeBtn) {
+    removeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      clearStudioFile();
+    });
+  }
+
+  // Format selection buttons
+  document.querySelectorAll('#format-btn-group .format-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const format = btn.getAttribute('data-format');
+      const ext = btn.getAttribute('data-ext');
+      setStudioFormat(format, ext);
+    });
+  });
+
+  // Target KB size chips
+  document.querySelectorAll('#studio-size-chips .size-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const kb = parseInt(chip.getAttribute('data-kb'), 10);
+      setStudioTargetKB(kb);
+    });
+  });
+
+  if (targetKbInput) {
+    targetKbInput.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10) || 0;
+      studioState.targetKB = val;
+      updateKbFeedback(val);
+      // Deselect chip highlights if custom
+      document.querySelectorAll('#studio-size-chips .size-chip').forEach(c => {
+        c.classList.toggle('active', parseInt(c.getAttribute('data-kb'), 10) === val);
+      });
+    });
+  }
+
+  // Dimension inputs & ratio locking
+  if (widthInput && heightInput && lockRatioCheckbox) {
+    lockRatioCheckbox.addEventListener('change', (e) => {
+      studioState.lockRatio = e.target.checked;
+      if (e.target.checked && widthInput.value && heightInput.value) {
+        studioState.aspectRatio = (parseInt(widthInput.value, 10) || 1) / (parseInt(heightInput.value, 10) || 1);
+      }
+    });
+
+    widthInput.addEventListener('input', (e) => {
+      const w = parseInt(e.target.value, 10) || 0;
+      studioState.targetWidth = w;
+      if (studioState.lockRatio && studioState.aspectRatio > 0 && w > 0) {
+        const calculatedH = Math.round(w / studioState.aspectRatio);
+        heightInput.value = calculatedH;
+        studioState.targetHeight = calculatedH;
+      }
+    });
+
+    heightInput.addEventListener('input', (e) => {
+      const h = parseInt(e.target.value, 10) || 0;
+      studioState.targetHeight = h;
+      if (studioState.lockRatio && studioState.aspectRatio > 0 && h > 0) {
+        const calculatedW = Math.round(h * studioState.aspectRatio);
+        widthInput.value = calculatedW;
+        studioState.targetWidth = calculatedW;
+      }
+    });
+  }
+
+  // Presets
+  document.querySelectorAll('.preset-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const preset = chip.getAttribute('data-preset');
+      applyPreset(preset);
+    });
+  });
+
+  // Action buttons
+  if (processBtn) processBtn.addEventListener('click', processDocumentConversion);
+  if (downloadBtn) downloadBtn.addEventListener('click', downloadConvertedStudioFile);
+}
+
+function handleStudioFile(file) {
+  studioState.file = file;
+  studioState.fileName = file.name;
+  studioState.fileSize = file.size;
+  studioState.fileType = file.type;
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = new Image();
+    img.onload = () => {
+      studioState.img = img;
+      studioState.origWidth = img.naturalWidth;
+      studioState.origHeight = img.naturalHeight;
+      studioState.aspectRatio = img.naturalWidth / img.naturalHeight;
+
+      // Update UI
+      const dropzone = document.getElementById('studio-dropzone');
+      const fileInfo = document.getElementById('studio-file-info');
+      const thumb = document.getElementById('studio-file-thumb');
+      const nameEl = document.getElementById('studio-file-name');
+      const metaEl = document.getElementById('studio-file-meta');
+
+      if (dropzone) dropzone.style.display = 'none';
+      if (fileInfo) fileInfo.style.display = 'flex';
+      if (thumb) thumb.src = e.target.result;
+      if (nameEl) nameEl.innerText = file.name;
+      
+      const sizeStr = file.size > 1024 * 1024 
+        ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` 
+        : `${Math.round(file.size / 1024)} KB`;
+      const formatStr = file.type ? file.type.replace('image/', '').toUpperCase() : 'IMG';
+      if (metaEl) metaEl.innerText = `${sizeStr} • ${img.naturalWidth} × ${img.naturalHeight} px • ${formatStr}`;
+
+      showToast(`Loaded "${file.name}" ready to adjust.`);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function clearStudioFile() {
+  studioState.file = null;
+  studioState.img = null;
+  studioState.processedBlob = null;
+  if (studioState.processedUrl) {
+    URL.revokeObjectURL(studioState.processedUrl);
+    studioState.processedUrl = null;
+  }
+
+  const dropzone = document.getElementById('studio-dropzone');
+  const fileInfo = document.getElementById('studio-file-info');
+  const resultCard = document.getElementById('studio-result-card');
+  const fileInput = document.getElementById('studio-file-input');
+
+  if (dropzone) dropzone.style.display = 'flex';
+  if (fileInfo) fileInfo.style.display = 'none';
+  if (resultCard) resultCard.style.display = 'none';
+  if (fileInput) fileInput.value = '';
+}
+
+function setStudioFormat(mimeType, ext) {
+  studioState.targetFormat = mimeType;
+  studioState.targetExt = ext;
+
+  document.querySelectorAll('#format-btn-group .format-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-format') === mimeType);
+  });
+}
+
+function setStudioTargetKB(kb) {
+  studioState.targetKB = kb;
+  const input = document.getElementById('studio-target-kb');
+  if (input) input.value = kb > 0 ? kb : '';
+  updateKbFeedback(kb);
+
+  document.querySelectorAll('#studio-size-chips .size-chip').forEach(chip => {
+    chip.classList.toggle('active', parseInt(chip.getAttribute('data-kb'), 10) === kb);
+  });
+}
+
+function updateKbFeedback(kb) {
+  const fb = document.getElementById('studio-kb-feedback');
+  if (fb) {
+    fb.innerText = kb > 0 ? `Max ${kb} KB` : "No limit (Full resolution)";
+  }
+}
+
+function setStudioDimensions(w, h) {
+  studioState.targetWidth = w;
+  studioState.targetHeight = h;
+  if (w > 0 && h > 0) {
+    studioState.aspectRatio = w / h;
+  }
+
+  const wInput = document.getElementById('studio-width');
+  const hInput = document.getElementById('studio-height');
+  if (wInput) wInput.value = w;
+  if (hInput) hInput.value = h;
+}
+
+function applyPreset(presetName) {
+  studioState.preset = presetName;
+
+  document.querySelectorAll('.preset-chip').forEach(chip => {
+    chip.classList.toggle('active', chip.getAttribute('data-preset') === presetName);
+  });
+
+  const cropSelect = document.getElementById('studio-crop-mode');
+
+  if (presetName === 'passport') {
+    setStudioFormat('image/jpeg', 'jpg');
+    setStudioTargetKB(50);
+    setStudioDimensions(350, 450);
+    if (cropSelect) cropSelect.value = 'crop';
+  } else if (presetName === 'signature') {
+    setStudioFormat('image/jpeg', 'jpg');
+    setStudioTargetKB(20);
+    setStudioDimensions(280, 120);
+    if (cropSelect) cropSelect.value = 'fit';
+  } else if (presetName === 'marksheet') {
+    setStudioFormat('application/pdf', 'pdf');
+    setStudioTargetKB(200);
+    setStudioDimensions(1200, 1600);
+    if (cropSelect) cropSelect.value = 'fit';
+  } else if (presetName === 'certificate') {
+    setStudioFormat('application/pdf', 'pdf');
+    setStudioTargetKB(100);
+    setStudioDimensions(1200, 1600);
+    if (cropSelect) cropSelect.value = 'fit';
+  }
+}
+
+// Adaptive JPEG compressor that guarantees output is <= maxBytes without over-compressing
+async function adaptiveCompressJpeg(canvas, maxBytes, mimeType = 'image/jpeg') {
+  if (!maxBytes || maxBytes <= 0) {
+    return await new Promise(res => canvas.toBlob(res, mimeType, 0.92));
+  }
+
+  let minQ = 0.05;
+  let maxQ = 0.96;
+  let bestBlob = null;
+
+  for (let i = 0; i < 7; i++) {
+    const midQ = (minQ + maxQ) / 2;
+    const blob = await new Promise(res => canvas.toBlob(res, mimeType, midQ));
+    if (blob.size <= maxBytes) {
+      bestBlob = blob;
+      minQ = midQ;
+    } else {
+      maxQ = midQ;
+    }
+  }
+
+  // If still larger than targetKB (e.g. 20KB for high resolution canvas), scale down dimensions
+  if (!bestBlob || bestBlob.size > maxBytes) {
+    let scaled = canvas;
+    while (scaled.width > 120 && (!bestBlob || bestBlob.size > maxBytes)) {
+      const w = Math.round(scaled.width * 0.82);
+      const h = Math.round(scaled.height * 0.82);
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, w, h);
+      ctx.drawImage(scaled, 0, 0, w, h);
+      scaled = c;
+      const testBlob = await new Promise(res => scaled.toBlob(res, mimeType, 0.72));
+      if (testBlob.size <= maxBytes) {
+        bestBlob = testBlob;
+        break;
+      }
+    }
+  }
+
+  return bestBlob || (await new Promise(res => canvas.toBlob(res, mimeType, 0.45)));
+}
+
+async function processDocumentConversion() {
+  if (!studioState.img) {
+    showToast("Please upload an image or document first", true);
+    return;
+  }
+
+  showToast("Converting & adjusting document...", false, true);
+  const processBtn = document.getElementById('studio-process-btn');
+  if (processBtn) processBtn.disabled = true;
+
+  try {
+    let outWidth = studioState.targetWidth;
+    let outHeight = studioState.targetHeight;
+    const cropSelect = document.getElementById('studio-crop-mode');
+    const cropMode = cropSelect ? cropSelect.value : 'crop';
+
+    const img = studioState.img;
+    let sX = 0, sY = 0, sW = img.naturalWidth, sH = img.naturalHeight;
+
+    if (cropMode === 'original' || outWidth <= 0 || outHeight <= 0) {
+      outWidth = img.naturalWidth;
+      outHeight = img.naturalHeight;
+    } else if (cropMode === 'crop') {
+      const targetRatio = outWidth / outHeight;
+      const imgRatio = img.naturalWidth / img.naturalHeight;
+
+      if (imgRatio > targetRatio) {
+        sW = Math.round(img.naturalHeight * targetRatio);
+        sH = img.naturalHeight;
+        sX = Math.round((img.naturalWidth - sW) / 2);
+        sY = 0;
+      } else {
+        sW = img.naturalWidth;
+        sH = Math.round(img.naturalWidth / targetRatio);
+        sX = 0;
+        sY = Math.round((img.naturalHeight - sH) / 2);
+      }
+    } else if (cropMode === 'fit') {
+      const scale = Math.min(outWidth / img.naturalWidth, outHeight / img.naturalHeight, 1);
+      outWidth = Math.round(img.naturalWidth * scale);
+      outHeight = Math.round(img.naturalHeight * scale);
+    }
+
+    let currentCanvas = document.createElement('canvas');
+    currentCanvas.width = outWidth;
+    currentCanvas.height = outHeight;
+    let ctx = currentCanvas.getContext('2d');
+
+    // Fill white background for JPEG / PDF so transparent PNGs don't become black
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, outWidth, outHeight);
+    ctx.drawImage(img, sX, sY, sW, sH, 0, 0, outWidth, outHeight);
+
+    const maxBytes = studioState.targetKB > 0 ? studioState.targetKB * 1024 : 0;
+    const format = studioState.targetFormat;
+    let finalBlob = null;
+
+    if (format === 'application/pdf') {
+      const targetJpegBytes = maxBytes > 1200 ? maxBytes - 1000 : maxBytes;
+      const jpegBlob = await adaptiveCompressJpeg(currentCanvas, targetJpegBytes);
+      const jpegBuffer = await jpegBlob.arrayBuffer();
+      const pdfBytes = createPdfFromJpeg(new Uint8Array(jpegBuffer), currentCanvas.width, currentCanvas.height);
+      finalBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+    } else if (format === 'image/jpeg' || format === 'image/webp') {
+      finalBlob = await adaptiveCompressJpeg(currentCanvas, maxBytes, format);
+    } else {
+      finalBlob = await new Promise(res => currentCanvas.toBlob(res, 'image/png'));
+      if (maxBytes > 0 && finalBlob.size > maxBytes) {
+        let scaledCanvas = currentCanvas;
+        while (finalBlob.size > maxBytes && scaledCanvas.width > 120) {
+          const nextW = Math.round(scaledCanvas.width * 0.85);
+          const nextH = Math.round(scaledCanvas.height * 0.85);
+          const nextCanvas = document.createElement('canvas');
+          nextCanvas.width = nextW;
+          nextCanvas.height = nextH;
+          const nextCtx = nextCanvas.getContext('2d');
+          nextCtx.drawImage(scaledCanvas, 0, 0, nextW, nextH);
+          scaledCanvas = nextCanvas;
+          finalBlob = await new Promise(res => scaledCanvas.toBlob(res, 'image/png'));
+        }
+        currentCanvas = scaledCanvas;
+      }
+    }
+
+    studioState.processedBlob = finalBlob;
+    if (studioState.processedUrl) URL.revokeObjectURL(studioState.processedUrl);
+    studioState.processedUrl = URL.createObjectURL(finalBlob);
+
+    const rawBaseName = studioState.fileName.replace(/\.[^/.]+$/, "") || "converted_document";
+    const cleanBaseName = rawBaseName.replace(/[^a-zA-Z0-9_-]/g, "_");
+    studioState.resultFileName = `${cleanBaseName}_luna.${studioState.targetExt}`;
+
+    renderStudioResult(finalBlob, currentCanvas.width, currentCanvas.height);
+    showToast("Conversion & optimization complete!");
+
+  } catch (err) {
+    console.error("Doc Studio processing error:", err);
+    showToast("Failed to process: " + err.message, true);
+  } finally {
+    if (processBtn) processBtn.disabled = false;
+  }
+}
+
+function renderStudioResult(blob, width, height) {
+  const resultCard = document.getElementById('studio-result-card');
+  const previewImg = document.getElementById('studio-result-preview');
+  const pdfIcon = document.getElementById('studio-result-pdf-icon');
+  const filenameEl = document.getElementById('studio-result-filename');
+  const statsEl = document.getElementById('studio-result-stats');
+  const badgeEl = document.getElementById('studio-reduction-badge');
+
+  if (!resultCard) return;
+  resultCard.style.display = 'block';
+
+  if (filenameEl) filenameEl.innerText = studioState.resultFileName;
+
+  const sizeKb = (blob.size / 1024).toFixed(1);
+  const targetKbText = studioState.targetKB > 0 ? ` (Limit: ${studioState.targetKB} KB)` : '';
+  if (statsEl) {
+    statsEl.innerHTML = `Size: <b>${sizeKb} KB</b>${targetKbText} • ${width} × ${height} px • ${studioState.targetExt.toUpperCase()}`;
+  }
+
+  if (studioState.fileSize > 0 && badgeEl) {
+    const diff = studioState.fileSize - blob.size;
+    if (diff > 0) {
+      const pct = Math.round((diff / studioState.fileSize) * 100);
+      badgeEl.innerText = `${pct}% SMALLER`;
+      badgeEl.style.display = 'inline-block';
+    } else {
+      badgeEl.style.display = 'none';
+    }
+  }
+
+  if (blob.type === 'application/pdf') {
+    if (previewImg) previewImg.style.display = 'none';
+    if (pdfIcon) pdfIcon.style.display = 'flex';
+  } else {
+    if (previewImg) {
+      previewImg.style.display = 'block';
+      previewImg.src = studioState.processedUrl;
+    }
+    if (pdfIcon) pdfIcon.style.display = 'none';
+  }
+
+  resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function downloadConvertedStudioFile() {
+  if (!studioState.processedBlob || !studioState.processedUrl) return;
+  const a = document.createElement('a');
+  a.href = studioState.processedUrl;
+  a.download = studioState.resultFileName;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => a.remove(), 1000);
+  showToast(`Downloaded ${studioState.resultFileName}!`);
 }

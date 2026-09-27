@@ -707,6 +707,134 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+
+    /* Doc & Photo Studio Styles */
+    .studio-dropzone {
+      border: 2px dashed var(--border-default);
+      border-radius: var(--radius-md);
+      background: var(--bg-surface);
+      padding: 18px 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    .studio-dropzone:hover, .studio-dropzone.dragover {
+      border-color: var(--accent-primary);
+      background: #faf4e8;
+    }
+    .studio-file-info {
+      display: none;
+      align-items: center;
+      gap: 10px;
+      background: #faf4e8;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      margin-top: 8px;
+    }
+    .studio-file-thumb {
+      width: 46px;
+      height: 46px;
+      object-fit: cover;
+      border-radius: 4px;
+      border: 1px solid var(--border-subtle);
+      background: #fff;
+      flex-shrink: 0;
+    }
+    .preset-chip-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .preset-chip {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding: 4px 9px;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .preset-chip:hover {
+      border-color: var(--accent-primary);
+      color: var(--text-primary);
+      background: #fdfaf3;
+    }
+    .preset-chip.active {
+      background: var(--accent-primary);
+      border-color: var(--accent-primary);
+      color: #fff;
+    }
+    .format-btn-group {
+      display: flex;
+      gap: 4px;
+      background: var(--bg-panel);
+      padding: 3px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+    }
+    .format-btn {
+      flex: 1;
+      text-align: center;
+      padding: 6px 3px;
+      font-size: 0.74rem;
+      font-weight: 700;
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .format-btn.active {
+      background: var(--bg-surface);
+      color: var(--accent-primary);
+      box-shadow: var(--shadow-sm);
+    }
+    .studio-size-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+      margin-top: 6px;
+    }
+    .size-chip {
+      font-size: 0.68rem;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .size-chip:hover {
+      border-color: var(--accent-primary);
+    }
+    .size-chip.active {
+      background: #fef3c7;
+      border-color: #f59e0b;
+      color: #b45309;
+      font-weight: 700;
+    }
+    .studio-result-card {
+      display: none;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-left: 3px solid #16a34a;
+      border-radius: var(--radius-md);
+      padding: 12px;
+      margin-top: 14px;
+    }
   </style>
 </head>
 <body>
@@ -733,6 +861,10 @@
   <!-- Segmented Navigation Tabs -->
   <div class="tabs-bar">
     <button class="tab-btn active" data-view="view-dashboard">Overview</button>
+    <button class="tab-btn" data-view="view-docstudio" id="tab-btn-docstudio">
+      <svg style="width:12px; height:12px; fill:currentColor; margin-right:3px; vertical-align:-1px" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+      Doc Studio
+    </button>
     <button class="tab-btn" data-view="view-chat">Assistant</button>
     <button class="tab-btn" data-view="view-settings">Settings</button>
   </div>
@@ -805,6 +937,21 @@
         </div>
       </div>
 
+      <!-- Portal Document Preparation & Specifications Card -->
+      <div id="portal-docs-card" class="card" style="display: none; border-left: 3px solid #0284c7; background: #f0f9ff;">
+        <div class="card-title">
+          <span style="display: flex; align-items: center; gap: 6px; color: #0369a1;">
+            <svg style="width: 14px; height: 14px; fill: #0284c7;" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+            Required Documents & Specs
+          </span>
+          <span style="font-size: 0.65rem; padding: 2px 7px; border-radius: var(--radius-full); background: #e0f2fe; border: 1px solid #bae6fd; color: #0284c7; font-weight: 600;">PRE-FLIGHT</span>
+        </div>
+        <div style="font-size: 0.74rem; color: #0369a1; margin-bottom: 8px;">
+          Detected form upload requirements. Prepare & resize your files before starting:
+        </div>
+        <div id="portal-docs-list" style="display: flex; flex-direction: column; gap: 6px;"></div>
+      </div>
+
       <!-- Verified Downloads & Documents Card (Appears when genuine files are found) -->
       <div id="verified-downloads-card" class="card" style="display: none; border-left: 3px solid #c25e00; background: #fffdf9;">
         <div class="card-title">
@@ -834,7 +981,169 @@
       </div>
     </div>
 
-    <!-- VIEW 2: Chat Assistant -->
+    <!-- VIEW 2: Document & Photo Studio -->
+    <div id="view-docstudio" class="view-content">
+      
+      <!-- Studio Intro Card -->
+      <div class="card" style="border-left: 3px solid var(--accent-primary); background: #fffcf7;">
+        <div class="card-title">
+          <span style="display:flex; align-items:center; gap:6px; color: var(--text-primary);">
+            <svg style="width:15px; height:15px; fill:var(--accent-primary);" viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>
+            Doc & Photo Studio
+          </span>
+          <span style="font-size: 0.65rem; padding: 2px 7px; border-radius: var(--radius-full); background: #fef3c7; border: 1px solid #fde68a; color: #b45309; font-weight: 600;">PORTAL READY</span>
+        </div>
+        <div style="font-size: 0.74rem; color: var(--text-secondary); line-height: 1.45;">
+          Convert formats (PNG ⇄ JPG ⇄ PDF), compress to exact KB limits, and resize dimensions for any government, exam, or job portal. Completely private & local.
+        </div>
+      </div>
+
+      <!-- Detected Page Requirement Alert (Dynamically updated) -->
+      <div id="studio-detected-banner" class="card" style="display: none; background: #eff6ff; border: 1px solid #bfdbfe; border-left: 3px solid #3b82f6;">
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;">
+          <div>
+            <div style="font-weight: 700; font-size: 0.76rem; color: #1e40af; margin-bottom: 2px;" id="studio-detected-title">Page Requirement Detected</div>
+            <div style="font-size: 0.72rem; color: #2563eb;" id="studio-detected-desc">Photo must be under 50KB in JPG.</div>
+          </div>
+          <button id="studio-apply-detected-btn" style="background: #2563eb; color: #fff; border: none; font-size: 0.68rem; font-weight: 600; padding: 4px 8px; border-radius: 4px; cursor: pointer; white-space: nowrap; flex-shrink: 0;">
+            Apply Setting
+          </button>
+        </div>
+      </div>
+
+      <!-- Preset Selection -->
+      <div style="margin-bottom: 6px;">
+        <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px;">Portal Presets</div>
+        <div class="preset-chip-list">
+          <div class="preset-chip active" data-preset="passport">📸 Passport Photo (50KB JPG)</div>
+          <div class="preset-chip" data-preset="signature">✍️ Signature (20KB JPG)</div>
+          <div class="preset-chip" data-preset="marksheet">📄 Marksheet (200KB PDF)</div>
+          <div class="preset-chip" data-preset="certificate">📑 Certificate (100KB PDF)</div>
+          <div class="preset-chip" data-preset="custom">⚙️ Custom</div>
+        </div>
+      </div>
+
+      <!-- Upload Zone -->
+      <div class="card" style="margin-bottom: 12px;">
+        <div class="studio-dropzone" id="studio-dropzone">
+          <svg style="width:28px; height:28px; fill:var(--accent-primary);" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM14 13v4h-4v-4H7l5-5 5 5h-3z"/></svg>
+          <div style="font-weight: 600; font-size: 0.8rem; color: var(--text-primary);">Click or Drag & Drop Document / Photo</div>
+          <div style="font-size: 0.72rem; color: var(--text-tertiary);">Supports PNG, JPG, JPEG, WEBP, and Document Images</div>
+          <input type="file" id="studio-file-input" accept="image/*,application/pdf" style="display: none;">
+        </div>
+
+        <!-- Loaded File Info -->
+        <div id="studio-file-info" class="studio-file-info">
+          <img id="studio-file-thumb" class="studio-file-thumb" src="" alt="File Preview">
+          <div style="flex: 1; overflow: hidden;">
+            <div id="studio-file-name" style="font-weight: 600; font-size: 0.78rem; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">filename.png</div>
+            <div id="studio-file-meta" style="font-size: 0.7rem; color: var(--text-secondary); margin-top: 2px;">2.4 MB • 1920 × 1080 px • PNG</div>
+          </div>
+          <button id="studio-remove-file-btn" style="background: transparent; border: none; color: var(--text-tertiary); cursor: pointer; padding: 4px;" title="Remove file">
+            <svg style="width: 14px; height: 14px; fill: currentColor;" viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Controls & Adjustments Card -->
+      <div class="card" style="margin-bottom: 12px;">
+        <div class="card-title">
+          <span>Target Adjustments & Reading</span>
+        </div>
+
+        <!-- 1. Target Format -->
+        <div style="margin-bottom: 12px;">
+          <div style="font-size: 0.74rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 5px;">Convert To Format</div>
+          <div class="format-btn-group" id="format-btn-group">
+            <button class="format-btn active" data-format="image/jpeg" data-ext="jpg">JPG / JPEG</button>
+            <button class="format-btn" data-format="application/pdf" data-ext="pdf">PDF Doc</button>
+            <button class="format-btn" data-format="image/png" data-ext="png">PNG</button>
+            <button class="format-btn" data-format="image/webp" data-ext="webp">WEBP</button>
+          </div>
+        </div>
+
+        <!-- 2. Target File Size (Max KB) -->
+        <div style="margin-bottom: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <label for="studio-target-kb" style="font-size: 0.74rem; font-weight: 600; color: var(--text-secondary);">Target File Size Limit (KB)</label>
+            <span id="studio-kb-feedback" style="font-size: 0.68rem; color: var(--accent-primary); font-weight: 600;">Max 50 KB</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="number" id="studio-target-kb" value="50" min="5" max="5000" style="flex: 1; padding: 7px 10px; font-size: 0.8rem; background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: var(--text-primary);">
+            <span style="font-size: 0.76rem; font-weight: 600; color: var(--text-secondary);">KB</span>
+          </div>
+          <div class="studio-size-chips" id="studio-size-chips">
+            <button class="size-chip" data-kb="20">20 KB</button>
+            <button class="size-chip active" data-kb="50">50 KB</button>
+            <button class="size-chip" data-kb="100">100 KB</button>
+            <button class="size-chip" data-kb="200">200 KB</button>
+            <button class="size-chip" data-kb="0">No Limit</button>
+          </div>
+          <div style="font-size: 0.68rem; color: var(--text-tertiary); margin-top: 4px;">
+            Luna iteratively adjusts quality to guarantee output remains ≤ target KB.
+          </div>
+        </div>
+
+        <!-- 3. Dimensions & Crop -->
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <span style="font-size: 0.74rem; font-weight: 600; color: var(--text-secondary);">Dimensions (Width × Height)</span>
+            <label style="font-size: 0.68rem; color: var(--text-tertiary); display: flex; align-items: center; gap: 4px; cursor: pointer;">
+              <input type="checkbox" id="studio-lock-ratio" checked> Lock Ratio
+            </label>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <input type="number" id="studio-width" placeholder="Width (px)" value="350" style="flex: 1; padding: 6px 8px; font-size: 0.78rem; background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: var(--text-primary);">
+            <span style="color: var(--text-muted); font-size: 0.8rem;">×</span>
+            <input type="number" id="studio-height" placeholder="Height (px)" value="450" style="flex: 1; padding: 6px 8px; font-size: 0.78rem; background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--radius-sm); color: var(--text-primary);">
+          </div>
+          <div style="display: flex; align-items: center; gap: 6px; margin-top: 6px;">
+            <select id="studio-crop-mode" style="flex: 1; padding: 5px 8px; font-size: 0.72rem; background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); color: var(--text-secondary);">
+              <option value="crop">Center Crop to exact aspect ratio</option>
+              <option value="fit">Scale to fit (keep whole picture)</option>
+              <option value="original">Keep original resolution</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Process Button -->
+        <button id="studio-process-btn" class="primary-btn" style="margin-top: 14px; width: 100%;">
+          <svg style="width: 14px; height: 14px; fill: currentColor;" viewBox="0 0 24 24"><path d="M7.5 5.6L10 7 8.6 4.5 10 2 7.5 3.4 5 2l1.4 2.5L5 7zm12 9.8L17 14l1.4 2.5L17 19l2.5-1.4L22 19l-1.4-2.5L22 14zM22 2l-2.5 1.4L17 2l1.4 2.5L17 7l2.5-1.4L22 7l-1.4-2.5zm-7.63 5.29c-.39-.39-1.02-.39-1.41 0L1.29 18.96c-.39.39-.39 1.02 0 1.41l2.34 2.34c.39.39 1.02.39 1.41 0L16.7 11.05c.39-.39.39-1.02 0-1.41l-2.33-2.35zm-1.03 5.49l-1.41-1.41 6.06-6.06 1.41 1.41-6.06 6.06z"/></svg>
+          Convert & Adjust Document
+        </button>
+      </div>
+
+      <!-- Result Card -->
+      <div id="studio-result-card" class="studio-result-card">
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+          <div style="font-weight: 700; font-size: 0.78rem; color: #15803d; display: flex; align-items: center; gap: 5px;">
+            <svg style="width: 15px; height: 15px; fill: #16a34a;" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+            Ready for Portal Upload!
+          </div>
+          <span id="studio-reduction-badge" style="font-size: 0.66rem; font-weight: 700; background: #dcfce7; color: #15803d; border: 1px solid #86efac; padding: 2px 7px; border-radius: var(--radius-full);">78% SMALLER</span>
+        </div>
+
+        <div style="display: flex; gap: 10px; align-items: center; background: #fff; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 8px; margin-bottom: 10px;">
+          <img id="studio-result-preview" src="" alt="Result" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px; border: 1px solid #e2e8f0; display: block;">
+          <div id="studio-result-pdf-icon" style="display: none; width: 50px; height: 50px; background: #fee2e2; border-radius: 4px; align-items: center; justify-content: center; flex-direction: column;">
+            <svg style="width: 22px; height: 22px; fill: #dc2626;" viewBox="0 0 24 24"><path d="M20 2H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8.5 7.5c0 .83-.67 1.5-1.5 1.5H9v2H7.5V7H10c.83 0 1.5.67 1.5 1.5v1zm5 2c0 .83-.67 1.5-1.5 1.5h-2.5V7H15c.83 0 1.5.67 1.5 1.5v3zm4-3H19v1h1.5V11H19v2h-1.5V7h3v1.5z"/></svg>
+            <span style="font-size: 0.6rem; font-weight: 800; color: #dc2626;">PDF</span>
+          </div>
+          <div style="flex: 1; overflow: hidden; font-size: 0.72rem;">
+            <div id="studio-result-filename" style="font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">converted_photo.jpg</div>
+            <div id="studio-result-stats" style="color: var(--text-secondary); margin-top: 2px;">Size: <b>42.4 KB</b> (Limit: 50 KB) • 350 × 450 px</div>
+          </div>
+        </div>
+
+        <button id="studio-download-btn" class="primary-btn" style="width: 100%; background: #15803d; border-color: #166534;">
+          <svg style="width: 14px; height: 14px; fill: currentColor;" viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+          Download Converted File
+        </button>
+      </div>
+
+    </div>
+
+    <!-- VIEW 3: Chat Assistant -->
     <div id="view-chat" class="view-content">
       <div class="chat-container">
         
