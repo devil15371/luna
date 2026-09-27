@@ -1,7 +1,13 @@
 // content.js
 // Luna Assistant: Intelligent Page Extractor & SafeGuard Content Shield
 
-let safeGuardSettings = {
+(() => {
+  if (window.__LUNA_CONTENT_SCRIPT_INITIALIZED__) {
+    return;
+  }
+  window.__LUNA_CONTENT_SCRIPT_INITIALIZED__ = true;
+
+  let safeGuardSettings = {
   enabled: true,
   strictMode: false,
   allowReveal: true
@@ -626,8 +632,13 @@ function extractPageData() {
   const fullText = textBlocks.join('\n\n');
   const truncatedText = fullText.length > 25000 ? fullText.substring(0, 25000) + "\n\n[Content truncated for length...]" : fullText;
 
-  // Extract document and photo upload specifications
-  const documentRequirements = extractDocumentRequirements(fullText);
+  // Extract document and photo upload specifications safely
+  let documentRequirements = [];
+  try {
+    documentRequirements = extractDocumentRequirements(fullText);
+  } catch (e) {
+    console.warn("Luna: Document requirement extraction error:", e);
+  }
 
   return {
     title: title,
@@ -644,41 +655,53 @@ function extractDocumentRequirements(fullText) {
   const requirements = [];
   const seenTypes = new Set();
 
-  // 1. Inspect any <input type="file"> elements on the page
-  const fileInputs = document.querySelectorAll('input[type="file"]');
-  fileInputs.forEach((input) => {
-    const label = input.closest('label') || 
-                  (input.id ? document.querySelector(`label[for="${input.id}"]`) : null) ||
-                  input.closest('.form-group, .field, tr, td, div');
-    const containerText = label ? label.innerText.replace(/\s+/g, ' ').trim() : '';
-    const accept = input.getAttribute('accept') || '';
-
-    if (containerText.length > 3) {
-      const parsed = parseRequirementText(containerText, accept);
-      if (parsed && !seenTypes.has(parsed.type + parsed.maxKB)) {
-        seenTypes.add(parsed.type + parsed.maxKB);
-        requirements.push(parsed);
+  try {
+    // 1. Inspect any <input type="file"> elements on the page
+    const fileInputs = document.querySelectorAll('input[type="file"]');
+    fileInputs.forEach((input) => {
+      let label = input.closest('label');
+      if (!label && input.id) {
+        try {
+          label = document.querySelector(`label[for="${CSS.escape(input.id)}"]`);
+        } catch (e) {
+          label = null;
+        }
       }
-    }
-  });
-
-  // 2. Scan text blocks for common requirement sentences
-  const sentences = fullText.split(/[.\n;]/);
-  const docKeywords = ['photograph', 'passport photo', 'photo', 'signature', 'sign', 'marksheet', 'certificate', 'domicile', 'caste certificate', 'income certificate', 'id proof'];
-  
-  sentences.forEach(sentence => {
-    const lower = sentence.toLowerCase();
-    const hasDocKeyword = docKeywords.some(kw => lower.includes(kw));
-    const hasSizeOrFormat = lower.includes('kb') || lower.includes('mb') || lower.includes('jpg') || lower.includes('jpeg') || lower.includes('png') || lower.includes('pdf') || lower.includes('pixel') || lower.includes('dimension') || lower.includes('3.5');
-
-    if (hasDocKeyword && hasSizeOrFormat && sentence.trim().length > 10 && sentence.trim().length < 250) {
-      const parsed = parseRequirementText(sentence.trim());
-      if (parsed && !seenTypes.has(parsed.type + parsed.maxKB)) {
-        seenTypes.add(parsed.type + parsed.maxKB);
-        requirements.push(parsed);
+      if (!label) {
+        label = input.closest('.form-group, .field, tr, td, div');
       }
-    }
-  });
+      const containerText = label ? label.innerText.replace(/\s+/g, ' ').trim() : '';
+      const accept = input.getAttribute('accept') || '';
+
+      if (containerText.length > 3) {
+        const parsed = parseRequirementText(containerText, accept);
+        if (parsed && !seenTypes.has(parsed.type + parsed.maxKB)) {
+          seenTypes.add(parsed.type + parsed.maxKB);
+          requirements.push(parsed);
+        }
+      }
+    });
+
+    // 2. Scan text blocks for common requirement sentences
+    const sentences = (fullText || '').split(/[.\n;]/);
+    const docKeywords = ['photograph', 'passport photo', 'photo', 'signature', 'sign', 'marksheet', 'certificate', 'domicile', 'caste certificate', 'income certificate', 'id proof'];
+    
+    sentences.forEach(sentence => {
+      const lower = sentence.toLowerCase();
+      const hasDocKeyword = docKeywords.some(kw => lower.includes(kw));
+      const hasSizeOrFormat = lower.includes('kb') || lower.includes('mb') || lower.includes('jpg') || lower.includes('jpeg') || lower.includes('png') || lower.includes('pdf') || lower.includes('pixel') || lower.includes('dimension') || lower.includes('3.5');
+
+      if (hasDocKeyword && hasSizeOrFormat && sentence.trim().length > 10 && sentence.trim().length < 250) {
+        const parsed = parseRequirementText(sentence.trim());
+        if (parsed && !seenTypes.has(parsed.type + parsed.maxKB)) {
+          seenTypes.add(parsed.type + parsed.maxKB);
+          requirements.push(parsed);
+        }
+      }
+    });
+  } catch (err) {
+    console.warn("Luna: Document requirement extraction error:", err);
+  }
 
   return requirements.slice(0, 6);
 }
@@ -768,7 +791,12 @@ function parseRequirementText(rawText, acceptAttr = '') {
 
 // Highlights a tracked element on the page, scrolls to it, and applies a glow effect
 function highlightAndScrollToElement(elementId) {
-  const el = document.querySelector(`[data-airguide-id="${elementId}"]`);
+  let el = null;
+  try {
+    el = document.querySelector(`[data-airguide-id="${CSS.escape(elementId)}"]`);
+  } catch (e) {
+    el = document.querySelector(`[data-airguide-id="${elementId}"]`);
+  }
   if (!el) return false;
 
   const activeGlows = document.querySelectorAll('.airguide-glowing-highlight');
@@ -809,3 +837,9 @@ function highlightAndScrollToElement(elementId) {
 
   return true;
 }
+
+  // Expose to window for extension programmatic execution
+  window.extractPageData = extractPageData;
+  window.highlightAndScrollToElement = highlightAndScrollToElement;
+})();
+

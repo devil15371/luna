@@ -368,17 +368,26 @@ async function dissectPage() {
   showToast("Reading page with Luna...", false, true);
 
   try {
-    // Inject content.js into the tab's isolated world
-    await chrome.scripting.executeScript({
+    // Check if content script is already loaded and active in the tab
+    const probe = await chrome.scripting.executeScript({
       target: { tabId: activeTabId },
-      files: ['content.js']
-    });
+      func: () => typeof window.extractPageData === 'function'
+    }).catch(() => null);
+
+    if (!probe || !probe[0] || !probe[0].result) {
+      await chrome.scripting.executeScript({
+        target: { tabId: activeTabId },
+        files: ['content.js']
+      });
+    }
 
     // Now execute extractPageData from within the isolated world
     const extractResults = await chrome.scripting.executeScript({
       target: { tabId: activeTabId },
       func: () => {
-        // extractPageData was loaded via content.js file injection into the isolated world
+        if (typeof window.extractPageData === 'function') {
+          return window.extractPageData();
+        }
         if (typeof extractPageData === 'function') {
           return extractPageData();
         }
@@ -410,7 +419,12 @@ async function dissectPage() {
 
   } catch (error) {
     console.error("Dissection error:", error);
-    showToast("Failed to parse page. Make sure it's an open webpage.", true);
+    const msg = error && error.message ? error.message : "";
+    if (msg.includes("Cannot access a chrome://") || msg.includes("Extension context invalidated")) {
+      showToast("Please refresh this webpage tab (F5) and click Analyze.", true);
+    } else {
+      showToast("Could not parse page. Please refresh tab and retry.", true);
+    }
   }
 }
 
@@ -503,15 +517,24 @@ async function triggerElementHighlight(elementId) {
   if (!activeTabId) return;
   
   try {
-    // First ensure content.js helpers are loaded, then call highlight
-    await chrome.scripting.executeScript({
+    const probe = await chrome.scripting.executeScript({
       target: { tabId: activeTabId },
-      files: ['content.js']
-    });
+      func: () => typeof window.highlightAndScrollToElement === 'function'
+    }).catch(() => null);
+
+    if (!probe || !probe[0] || !probe[0].result) {
+      await chrome.scripting.executeScript({
+        target: { tabId: activeTabId },
+        files: ['content.js']
+      });
+    }
+
     await chrome.scripting.executeScript({
       target: { tabId: activeTabId },
       func: (id) => {
-        if (typeof highlightAndScrollToElement === 'function') {
+        if (typeof window.highlightAndScrollToElement === 'function') {
+          window.highlightAndScrollToElement(id);
+        } else if (typeof highlightAndScrollToElement === 'function') {
           highlightAndScrollToElement(id);
         }
       },
@@ -621,12 +644,26 @@ Provide a JSON response with the following exact keys. Return ONLY raw JSON code
     const parts = candidate && candidate.content && candidate.content.parts;
     const responseText = parts ? parts.filter(p => p.text && !p.thought).map(p => p.text).join('') || parts[0].text : '';
 
-    let cleanText = responseText.trim();
-    if (cleanText.startsWith('```json')) cleanText = cleanText.slice(7);
-    else if (cleanText.startsWith('```')) cleanText = cleanText.slice(3);
-    if (cleanText.endsWith('```')) cleanText = cleanText.slice(0, -3);
-
-    const cleanJson = JSON.parse(cleanText.trim());
+    let cleanJson = null;
+    try {
+      let cleanText = responseText.trim();
+      if (cleanText.startsWith('```json')) cleanText = cleanText.slice(7);
+      else if (cleanText.startsWith('```')) cleanText = cleanText.slice(3);
+      if (cleanText.endsWith('```')) cleanText = cleanText.slice(0, -3);
+      cleanJson = JSON.parse(cleanText.trim());
+    } catch (parseErr) {
+      // Fallback: search for first { ... } JSON block in model output
+      const match = responseText.match(/\{[\s\S]*\}/);
+      if (match) {
+        try {
+          cleanJson = JSON.parse(match[0]);
+        } catch (e2) {
+          throw new Error("Unable to parse model JSON: " + parseErr.message);
+        }
+      } else {
+        throw parseErr;
+      }
+    }
 
     // Render separate information pillars
     renderSeparateInformationPillars(cleanJson);
@@ -895,12 +932,6 @@ function checkUserEligibility() {
     const relaxMsg = relaxation > 0 && age > max ? ` (Qualifies with ${relaxation} yrs ${cat} relaxation)` : '';
     const eduMsg = edu ? ` with qualification "${edu}"` : '';
     verdictBox.innerHTML = `<b>✅ You Appear Eligible:</b> Age ${age}${relaxMsg}${eduMsg} meets the criteria for this portal. Keep required documents ready!`;
-  }
-}
-
-  setTimeout(() => {
-    showToast("Demo dissection complete!");
-  }, 500);
 }
 
 // Chat system
