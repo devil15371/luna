@@ -14,91 +14,136 @@ let safeguard = {
   allowReveal: true
 };
 
+function safeAddListener(id, event, handler) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.addEventListener(event, handler);
+  }
+}
+
 // Initialize the Extension Side Panel
-document.addEventListener('DOMContentLoaded', async () => {
-  // Load configuration
-  await loadSettings();
-  
-  // Initialize Tab Switching
-  initTabs();
-
-  // Initialize Doc & Photo Studio
-  initDocStudio();
-
-  // Listen for tab activation / updates to track current page
-  chrome.tabs.onActivated.addListener(async (activeInfo) => {
-    await trackTab(activeInfo.tabId);
-  });
-
-  chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
-    if (changeInfo.status === 'complete' && tabId === activeTabId) {
-      await trackTab(tabId);
-    }
-  });
-
-  // Track the initial tab
-  const initialTab = await getActiveWebTab();
-  if (initialTab) {
-    await trackTab(initialTab.id);
+async function initApp() {
+  // 1. Initialize Tab Switching FIRST so user can immediately switch tabs
+  try {
+    initTabs();
+  } catch (e) {
+    console.warn("Luna: Tab init notice:", e);
   }
 
-  // Button Listeners
-  document.getElementById('dissect-btn').addEventListener('click', dissectPage);
-  document.getElementById('send-chat-btn').addEventListener('click', sendChatMessage);
-  document.getElementById('chat-input').addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendChatMessage();
-    }
-  });
+  // 2. Initialize Doc & Photo Studio immediately
+  try {
+    initDocStudio();
+  } catch (e) {
+    console.warn("Luna: DocStudio init notice:", e);
+  }
 
-  // Setup suggestion chips
-  document.querySelectorAll('.suggestion-chip').forEach(chip => {
-    chip.addEventListener('click', () => {
-      const query = chip.getAttribute('data-query');
-      document.getElementById('chat-input').value = query;
-      sendChatMessage();
+  // 3. Attach Button Listeners safely
+  try {
+    safeAddListener('dissect-btn', 'click', dissectPage);
+    safeAddListener('send-chat-btn', 'click', sendChatMessage);
+
+    const chatInput = document.getElementById('chat-input');
+    if (chatInput) {
+      chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          sendChatMessage();
+        }
+      });
+    }
+
+    // Setup suggestion chips
+    document.querySelectorAll('.suggestion-chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const query = chip.getAttribute('data-query');
+        if (chatInput && query) {
+          chatInput.value = query;
+          sendChatMessage();
+        }
+      });
     });
-  });
 
-  // Settings Save Listener
-  document.getElementById('save-settings-btn').addEventListener('click', saveSettings);
-  document.getElementById('live-api-toggle').addEventListener('change', toggleApiKeyVisibility);
+    // Settings & Safeguard Listeners
+    safeAddListener('save-settings-btn', 'click', saveSettings);
+    safeAddListener('live-api-toggle', 'change', toggleApiKeyVisibility);
+    safeAddListener('save-safeguard-btn', 'click', saveSafeGuardSettings);
+    safeAddListener('rescan-shield-btn', 'click', rescanSafeGuard);
 
-  // SafeGuard Shield Listeners
-  document.getElementById('save-safeguard-btn').addEventListener('click', saveSafeGuardSettings);
-  document.getElementById('rescan-shield-btn').addEventListener('click', rescanSafeGuard);
+    // Quick Eligibility Checker Listener
+    safeAddListener('verify-eligibility-btn', 'click', checkUserEligibility);
 
-  // Quick Eligibility Checker Listener
-  const verifyEligibilityBtn = document.getElementById('verify-eligibility-btn');
-  if (verifyEligibilityBtn) {
-    verifyEligibilityBtn.addEventListener('click', checkUserEligibility);
+    // Go to Doc Studio from Documents Card button
+    const gotoStudioDocsBtn = document.getElementById('goto-studio-from-docs-btn');
+    if (gotoStudioDocsBtn) {
+      gotoStudioDocsBtn.addEventListener('click', () => {
+        const docStudioTabBtn = document.getElementById('tab-btn-docstudio');
+        if (docStudioTabBtn) docStudioTabBtn.click();
+      });
+    }
+
+    // Chat message links event delegation
+    const chatContainer = document.getElementById('chat-messages-container');
+    if (chatContainer) {
+      chatContainer.addEventListener('click', (e) => {
+        if (e.target && e.target.classList && e.target.classList.contains('chat-link')) {
+          const elementId = e.target.getAttribute('data-target-id');
+          if (elementId) triggerElementHighlight(elementId);
+        }
+      });
+    }
+
+    // Listen for live shield stats updates from content script
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
+      chrome.runtime.onMessage.addListener((message) => {
+        if (message && message.type === 'SAFEGUARD_STATS_UPDATE') {
+          updateShieldStatusUI(safeguard.enabled, message.count);
+        }
+      });
+    }
+  } catch (e) {
+    console.error("Luna: Error attaching event listeners:", e);
   }
 
-  // Go to Doc Studio from Documents Card button
-  const gotoStudioDocsBtn = document.getElementById('goto-studio-from-docs-btn');
-  if (gotoStudioDocsBtn) {
-    gotoStudioDocsBtn.addEventListener('click', () => {
-      const docStudioTabBtn = document.getElementById('tab-btn-docstudio');
-      if (docStudioTabBtn) docStudioTabBtn.click();
-    });
+  // 4. Load configuration asynchronously
+  try {
+    await loadSettings();
+  } catch (e) {
+    console.warn("Luna: loadSettings notice:", e);
   }
 
-  // Chat message links event delegation
-  document.getElementById('chat-messages-container').addEventListener('click', (e) => {
-    if (e.target.classList.contains('chat-link')) {
-      const elementId = e.target.getAttribute('data-target-id');
-      triggerElementHighlight(elementId);
-    }
-  });
+  // 5. Track active tab
+  try {
+    if (typeof chrome !== 'undefined' && chrome.tabs) {
+      if (chrome.tabs.onActivated) {
+        chrome.tabs.onActivated.addListener(async (activeInfo) => {
+          await trackTab(activeInfo.tabId);
+        });
+      }
 
-  // Listen for live shield stats updates from content script
-  chrome.runtime.onMessage.addListener((message) => {
-    if (message.type === 'SAFEGUARD_STATS_UPDATE') {
-      updateShieldStatusUI(safeguard.enabled, message.count);
+      if (chrome.tabs.onUpdated) {
+        chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
+          if (changeInfo.status === 'complete' && tabId === activeTabId) {
+            await trackTab(tabId);
+          }
+        });
+      }
+
+      const initialTab = await getActiveWebTab();
+      if (initialTab) {
+        await trackTab(initialTab.id);
+      }
     }
-  });
-});
+  } catch (e) {
+    console.warn("Luna: Tab tracking notice:", e);
+  }
+}
+
+// Run immediately if DOM is already ready, or on DOMContentLoaded
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initApp);
+} else {
+  initApp();
+}
 
 // Helper to reliably find the active webpage tab
 async function getActiveWebTab() {
